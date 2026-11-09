@@ -130,6 +130,8 @@ async fn run_web() {
     game.world.car_mode=25;
     game.world.init_map(&game.save);
     game.enter_mode(9);
+    extern "C" { fn dr_game_ready(); }
+    unsafe { dr_game_ready(); }
     game_loop(&mut game).await;
     // the browser tab can't "quit": just stop
     loop {

@@ -23,7 +23,7 @@ assert.equal(cars.length,7);assert.equal(new Set(cars.map(c=>c.slot)).size,7);
 for(const car of cars){const b=fs.readFileSync(path.join(dist,car.path));assert.equal(b.subarray(0,8).toString(),'DRHQ0001');const h=JSON.parse(b.subarray(12,12+b.readUInt32LE(8)));assert.equal(h.name,car.name);assert.equal(h.wheels.length,4);}
 const module=new WebAssembly.Module(fs.readFileSync(path.join(dist,'drdriving.wasm')));
 const ids=new Map();
-const element=id=>{if(!ids.has(id))ids.set(id,{style:{},textContent:'',listeners:{},focus(){this.focused=true},addEventListener(event,fn){this.listeners[event]=fn}});return ids.get(id)};
+const element=id=>{if(!ids.has(id))ids.set(id,{id,style:{},dataset:{},textContent:'',listeners:{},focus(){this.focused=true},setAttribute(k,v){this[k]=v},removeAttribute(k){delete this[k]},addEventListener(event,fn){this.listeners[event]=fn}});return ids.get(id)};
 const storage=new Map([['drdriving.save','original progression']]);let plugin;
 const context=vm.createContext({console,TextEncoder,TextDecoder,Uint8Array,URLSearchParams,WebAssembly,
   wasm_memory:new WebAssembly.Memory({initial:2}),location:{search:'',reload(){}},
@@ -31,6 +31,7 @@ const context=vm.createContext({console,TextEncoder,TextDecoder,Uint8Array,URLSe
   localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)},
   fetch:async()=>({ok:true,headers:{get:()=>null},body:{getReader:()=>({read:async()=>({done:true})})}}),
   miniquad_add_plugin:p=>{plugin=p},load:()=>{},setTimeout:()=>{},screen:{}});
+new vm.Script(fs.readFileSync(path.join(dist,'launcher.js'),'utf8'),{filename:'launcher.js'}).runInContext(context);
 for(const [index,match] of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].entries()){
   if(match[1].trim())new vm.Script(match[1],{filename:`inline-${index}.js`}).runInContext(context);
 }
@@ -44,5 +45,10 @@ assert.equal(storage.get('drdriving.sandbox.save.v1'),new TextDecoder().decode(t
 assert.equal(imports.env.dr_storage_get(200,1),-text.length);
 assert.equal(imports.env.dr_storage_get(200,1024),text.length);
 assert.equal(new TextDecoder().decode(new Uint8Array(context.wasm_memory.buffer,200,text.length)),new TextDecoder().decode(text));
+assert.equal(element('play').disabled,true);
+element('play').listeners.click();assert.notEqual(element('welcome').style.display,'none','Play must wait for the game');
+imports.env.dr_game_ready();assert.equal(element('play').disabled,false);
+element('touch-tab').listeners.click();assert.equal(element('keyboard-panel').hidden,true);assert.equal(element('touch-panel').hidden,false);
+element('keyboard-tab').listeners.click();assert.equal(element('keyboard-panel').hidden,false);
 element('play').listeners.click();assert.equal(element('welcome').style.display,'none');assert(element('glcanvas').focused);
 console.log(`Valid WASM, ${files.size} bundled assets, seven detailed cars, complete browser imports, isolated save round-trip, and play-screen fixture checks passed.`);

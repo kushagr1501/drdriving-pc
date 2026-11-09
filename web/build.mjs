@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import {createHash} from 'node:crypto';
 
 const args = new Set(process.argv.slice(2));
 if (args.has('--help')) {
@@ -57,6 +58,7 @@ const outputs = new Map();
 outputs.set('drdriving.wasm', await fs.readFile(wasm));
 outputs.set('mq_js_bundle.js', await fs.readFile(glue));
 for (const name of ['og.png', 'icon.png']) outputs.set(name, await fs.readFile(path.join(root, 'web', name)));
+for (const name of ['launcher.css','launcher.js','porsche.webp']) outputs.set(name,await fs.readFile(path.join(root,'web',name)));
 outputs.set('CREDITS.md', await fs.readFile(path.join(root, 'tools', 'car-quality', 'CREDITS.md')));
 outputs.set('LICENSE.txt', await fs.readFile(path.join(root, 'LICENSE')));
 
@@ -100,7 +102,14 @@ outputs.set('assets/cars/catalog.json', Buffer.from(`${JSON.stringify(catalog, n
 const html = await fs.readFile(path.join(root, 'web', 'index.html'), 'utf8');
 if (!html.includes('__ASSET_BYTES__')) throw new Error('web/index.html is missing its asset-size placeholder.');
 const origin=(process.env.DRDRIVING_SITE_URL??process.env.DRDRIVING_SITE_ORIGIN??'').replace(/\/+$/,'');
-outputs.set('index.html', Buffer.from(html.replaceAll('__ASSET_BYTES__', String(bundle.length)).replaceAll('__SITE_ORIGIN__',origin)));
+let page=html.replaceAll('__ASSET_BYTES__',String(bundle.length)).replaceAll('__SITE_ORIGIN__',origin);
+// Keep the readiness bridge, styles and compiled game on the same release when
+// a player refreshes a previously cached GitHub Pages tab.
+for(const name of ['launcher.css','launcher.js','porsche.webp','mq_js_bundle.js','drdriving.wasm','assets.bin']){
+  const revision=createHash('sha256').update(outputs.get(name)).digest('hex').slice(0,12);
+  page=page.replaceAll('"'+name+'"','"'+name+'?v='+revision+'"');
+}
+outputs.set('index.html',Buffer.from(page));
 outputs.set('.nojekyll', Buffer.alloc(0));
 
 for (const [name, data] of outputs) checkSize(name, data.length);

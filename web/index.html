@@ -22,6 +22,7 @@
 <meta name="twitter:description" content="Drive seven modern cars with unlimited coins and gold, right in your browser.">
 <meta name="twitter:image" content="__SITE_ORIGIN__/og.png">
 <link rel="icon" href="icon.png">
+<link rel="stylesheet" href="launcher.css">
 <style>
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden;
     overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -32,32 +33,48 @@
     display: none; align-items: center; justify-content: center; touch-action: manipulation; }
   #fs:hover, #fs:focus-visible { opacity: 1; }
   #fs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  #welcome { position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(ellipse at 70% 20%,#203640 0%,#10181f 45%,#070b10 100%);color:#eff6f7;font:16px system-ui,sans-serif; }
-  #welcome section { width:min(570px,calc(100vw - 54px));padding:30px 0; }
-  #welcome .eyebrow { color:#a4d75b;font-size:12px;letter-spacing:.22em;font-weight:700; }
-  #welcome h1 { font-size:clamp(38px,8vw,64px);line-height:1.02;letter-spacing:-.045em;margin:18px 0 12px; }
-  #welcome p { line-height:1.65;color:#b5c4cc;max-width:490px; }
-  #welcome button { display:block;margin:26px 0 20px;background:#b4e664;color:#132013;border:0;border-radius:7px;font-size:18px;font-weight:750;padding:16px 38px;cursor:pointer; }
-  #welcome .controls { border-top:1px solid #ffffff1c;padding-top:18px;font-size:13px; }
-  #welcome a { color:#b9cbd5;text-underline-offset:4px; }
   #failure { display:none;position:fixed;inset:0;z-index:40;place-items:center;background:#0d131bee;color:#fff;font:16px system-ui,sans-serif;text-align:center;padding:24px; }
   #failure button { border:0;border-radius:6px;padding:12px 24px;background:#b4e664;color:#132013;font-weight:700;cursor:pointer; }
 </style>
 </head>
 <body>
 <canvas id="glcanvas" tabindex="1"></canvas>
-<div id="welcome"><section>
-  <div class="eyebrow">MODERN GARAGE / BROWSER EDITION</div>
-  <h1>Dr. Driving</h1>
-  <p>Take seven modern cars out for a drive, or get a closer look in the 3D showroom. All cars unlocked. Unlimited coins and gold.</p>
-  <button id="play" type="button">Play now</button>
-  <p class="controls">Use the on-screen driving controls or your keyboard. In the garage, <strong>L</strong> opens the car list and <strong>V</strong> opens the showroom.<br>First launch downloads the game and car models. Progress saves in this browser.</p>
-  <p class="controls"><a href="CREDITS.md" target="_blank" rel="noopener">Car models &amp; credits</a> · <a href="LICENSE.txt" target="_blank" rel="noopener">License</a></p>
-</section></div>
+<div id="welcome"><main class="launch-shell">
+  <header class="launch-header">
+    <div class="launch-brand"><svg viewBox="0 0 28 26" aria-hidden="true"><path d="M3 25V2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 2h6v6H5zm12 0h6v6h-6zM11 8h6v6h-6zM5 14h6v6H5zm12 0h6v6h-6z" fill="currentColor"/><path d="M5 2h18v18H5" fill="none" stroke="currentColor"/></svg>DR. DRIVING</div>
+    <nav aria-label="Start screen"><a href="#control-guide">Controls</a><a href="CREDITS.md" target="_blank" rel="noopener">Credits ↗</a></nav>
+  </header>
+  <section class="launch-hero" aria-label="Start game">
+    <div class="launch-copy">
+      <h1><span>DR.</span><span>DRIVING</span></h1>
+      <p class="launch-facts"><span>7 modern cars</span><span class="fact-dot"> · </span><span>All unlocked. Unlimited coins.</span></p>
+      <button id="play" type="button" aria-describedby="load-note" disabled><span id="play-label">LOADING GAME</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h17m-7-7 7 7-7 7"/></svg></button>
+      <div class="launch-loading"><progress id="download-progress" value="0" max="100" aria-label="Game download"></progress><div class="load-line"><span id="load-note" aria-live="polite">Loading game files</span><span id="ready-state">Please wait</span></div></div>
+    </div>
+    <figure class="launch-art"><img src="porsche.webp" width="800" height="400" alt="Black Porsche 911 C4S in the game’s garage" fetchpriority="high"><figcaption><span>PORSCHE 911 C4S</span><span>Choose your car in the garage</span></figcaption></figure>
+  </section>
+  <section id="control-guide" class="control-guide" aria-labelledby="controls-title">
+    <div class="control-heading"><h2 id="controls-title">HOW TO PLAY</h2><div class="control-tabs" role="tablist" aria-label="Control type"><button id="keyboard-tab" role="tab" aria-selected="true" aria-controls="keyboard-panel" type="button">Keyboard</button><button id="touch-tab" role="tab" aria-selected="false" aria-controls="touch-panel" type="button" tabindex="-1">Touch</button></div></div>
+    <div id="keyboard-panel" class="control-body" role="tabpanel" aria-labelledby="keyboard-tab">
+      <div class="control-block"><h3>Driving</h3><div class="drive-guide"><div class="key-cluster" aria-label="W A S D"><kbd data-key="w arrowup">W</kbd><kbd data-key="a arrowleft">A</kbd><kbd data-key="s arrowdown">S</kbd><kbd data-key="d arrowright">D</kbd></div><div class="drive-legend"><span><b>W</b> Accelerate</span><span><b>S</b> Brake</span><span><b>A / D</b> Steer</span><small>Arrow keys work too</small></div></div></div>
+      <div class="control-block"><h3>Gear selector</h3><div class="gear-keys"><div><kbd data-key="1">1</kbd><span>Park</span></div><div><kbd data-key="2">2</kbd><span>Reverse</span></div><div><kbd data-key="3">3</kbd><span>Neutral</span></div><div class="drive-gear"><kbd data-key="4">4</kbd><span>Drive</span></div></div></div>
+      <div class="control-block"><h3>On the road</h3><div class="shortcut-list"><div><kbd data-key="escape">Esc</kbd><span>Pause</span></div><div><kbd data-key="c">C</kbd><span>Camera</span></div><div><kbd data-key="space">Space</kbd><span>Horn</span></div></div></div>
+      <div class="control-strip" style="grid-column:1/-1"><span><kbd data-key="l">L</kbd>Car list</span><span><kbd data-key="v">V</kbd>Showroom</span><span><kbd>Space</kbd>Choose mission</span><span><kbd>Enter</kbd>Start race</span></div>
+    </div>
+    <div id="touch-panel" class="control-body touch-guide" role="tabpanel" aria-labelledby="touch-tab" hidden>
+      <div class="control-block"><svg class="touch-icon" viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="26" cy="26" r="21"/><circle cx="26" cy="26" r="6"/><path d="m6 22 15 3m10 0 15-3M26 32v15"/></svg><div><h3>Steer</h3><p>Drag the on-screen steering wheel.</p></div></div>
+      <div class="control-block"><svg class="touch-icon" viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="4" y="21" width="17" height="25" rx="3"/><rect x="29" y="6" width="17" height="40" rx="3"/><path d="M9 27h7M9 33h7M9 39h7M34 13h7M34 20h7M34 27h7M34 34h7M34 41h7"/></svg><div><h3>Gas &amp; brake</h3><p>Hold the gas pedal to go. Hold the brake to stop.</p></div></div>
+      <div class="control-block"><span class="touch-gear" aria-hidden="true">D</span><div><h3>Select Drive</h3><p>Tap D on the gear lever before accelerating.</p></div></div>
+      <div class="control-strip" style="grid-column:1/-1">Pick a car, then tap the green arrows to choose a mission and start. Turn your phone sideways for more room.</div>
+    </div>
+  </section>
+  <footer class="launch-footer"><div><a href="https://github.com/kushagr1501/drdriving-pc" target="_blank" rel="noopener">GitHub ↗</a><a href="LICENSE.txt" target="_blank" rel="noopener">License</a></div><p>Progress saves in this browser.</p></footer>
+</main></div>
 <div id="failure" role="alert"><section><h2>The game couldn’t start</h2><p id="failure-message">Check your connection and try again.</p><button type="button" onclick="location.reload()">Retry</button></section></div>
 <button id="fs" type="button" title="Fullscreen" aria-label="Toggle fullscreen">
   <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
 </button>
+<script src="launcher.js"></script>
 <script>
 function drFailure(message) {
   document.getElementById('failure-message').textContent=message || 'Check your connection and try again.';
@@ -65,7 +82,6 @@ function drFailure(message) {
 }
 window.addEventListener('error',function(e){if(e.message && /wasm|WebGL|unreachable|memory|shader|RuntimeError/i.test(e.message))drFailure('The game could not load. Please use a browser with WebGL enabled and try again.');});
 window.addEventListener('unhandledrejection',function(){drFailure('The game could not finish loading. Check your connection and try again.');});
-document.getElementById('play').addEventListener('click',function(){document.getElementById('welcome').style.display='none';document.getElementById('glcanvas').focus();});
 // ---- 1. start downloading all game assets right away, in parallel with the wasm ----------------
 // assets.bin is one file (see web/build.sh); the game polls these counters for its loading screen.
 var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, state: 0, data: null };
@@ -77,9 +93,10 @@ var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, s
     var reader = res.body.getReader();
     function pump() {
       return reader.read().then(function (r) {
-        if (r.done) { drBundle.state = 1; return; }
+        if (r.done) { drBundle.state = 1; drLauncher.preparing(); return; }
         drBundle.chunks.push(r.value);
         drBundle.loaded += r.value.length;
+        drLauncher.downloading(drBundle.loaded,drBundle.total);
         return pump();
       });
     }
@@ -98,6 +115,7 @@ var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, s
     version: "0.2.0",
     register_plugin: function (importObject) {
       var env = importObject.env;
+      env.dr_game_ready = function () { drLauncher.ready(); };
       env.dr_storage_set = function (ptr, len) {
         try {
           localStorage.setItem(KEY, new TextDecoder().decode(new Uint8Array(wasm_memory.buffer, ptr, len)));
