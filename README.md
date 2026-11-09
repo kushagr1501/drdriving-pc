@@ -128,7 +128,7 @@ See [the car-quality tools](tools/car-quality/README.md) for sources and rebuild
 
 ### Browser version
 
-GitHub Pages: [Play Dr. Driving — Modern Garage](https://kushagr1501.github.io/drdriving-pc/).
+GitHub Pages custom domain: [Play Dr. Driving — Modern Garage](https://dr-driving.meowsy.space/).
 
 The WebAssembly/WebGL build bundles all seven detailed cars, unlimited coins/gold, the car
 selector, showroom and driving sounds. Progress saves locally in each browser. The Windows
@@ -151,3 +151,5 @@ Car packages in `web/car-pack/` are separate from `assets.bin` so each file stay
 
 The Pages workflow builds and validates the browser bundle on every push to `main`.
 In repository **Settings → Pages**, the publishing source is **GitHub Actions**.
+The custom domain is recorded in `web/CNAME` and copied into the published bundle.
+DNS: `dr-driving` is a CNAME to `kushagr1501.github.io`.

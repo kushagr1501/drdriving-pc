@@ -55,6 +55,12 @@ const glue = path.join(path.dirname(macroquad.manifest_path), 'js', 'mq_js_bundl
 
 // Read and validate every input before replacing the existing generated output.
 const outputs = new Map();
+let customDomain='';
+try{customDomain=(await fs.readFile(path.join(root,'web','CNAME'),'utf8')).trim();}catch(error){if(error.code!=='ENOENT')throw error;}
+if(customDomain){
+  if(!/^[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?$/i.test(customDomain)||!customDomain.includes('.')||customDomain.includes('..'))throw new Error('web/CNAME must contain a domain name only.');
+  outputs.set('CNAME',Buffer.from(customDomain+'\n'));
+}
 outputs.set('drdriving.wasm', await fs.readFile(wasm));
 outputs.set('mq_js_bundle.js', await fs.readFile(glue));
 for (const name of ['og.png', 'icon.png']) outputs.set(name, await fs.readFile(path.join(root, 'web', name)));
@@ -101,7 +107,7 @@ for (const slot of slots) {
 outputs.set('assets/cars/catalog.json', Buffer.from(`${JSON.stringify(catalog, null, 2)}\n`));
 const html = await fs.readFile(path.join(root, 'web', 'index.html'), 'utf8');
 if (!html.includes('__ASSET_BYTES__')) throw new Error('web/index.html is missing its asset-size placeholder.');
-const origin=(process.env.DRDRIVING_SITE_URL??process.env.DRDRIVING_SITE_ORIGIN??'').replace(/\/+$/,'');
+const origin=(customDomain?'https://'+customDomain:(process.env.DRDRIVING_SITE_URL??process.env.DRDRIVING_SITE_ORIGIN??'')).replace(/\/+$/,'');
 let page=html.replaceAll('__ASSET_BYTES__',String(bundle.length)).replaceAll('__SITE_ORIGIN__',origin);
 // Keep the readiness bridge, styles and compiled game on the same release when
 // a player refreshes a previously cached GitHub Pages tab.
