@@ -18,6 +18,10 @@ pub struct Assets {
     pub interior: Vec<Texture2D>,
     pub road_tex: Vec<Texture2D>,
     pub car_model: Vec<Model>,
+    pub custom_car: [bool; 30],
+    pub custom_car_name: [Option<String>; 30],
+    pub detailed_cars: [Option<crate::car_render::DetailedCar>; 30],
+    pub car_renderer: crate::car_render::CarRenderer,
     pub light_model: Vec<Model>,
     pub road_model: Vec<Model>,
     pub font: Option<Font>,
@@ -71,7 +75,7 @@ pub fn set_loading_draw(f: Option<Box<dyn Fn()>>) {
 
 /// Runs `fut` to completion; on the web the loading screen is redrawn every frame meanwhile.
 #[cfg(target_arch = "wasm32")]
-async fn present_while<T: 'static + std::any::Any>(fut: impl std::future::Future<Output = T> + 'static + Send) -> T {
+pub(crate) async fn present_while<T: 'static + std::any::Any>(fut: impl std::future::Future<Output = T> + 'static + Send) -> T {
     let co = macroquad::experimental::coroutines::start_coroutine(fut);
     while !co.is_done() {
         clear_background(BLACK);
@@ -348,6 +352,10 @@ pub async fn load(base: &str, progress: &mut dyn FnMut(f32, &str, &Texture2D, &O
         interior: interior_tex,
         road_tex,
         car_model,
+        custom_car: [false; 30],
+        custom_car_name: std::array::from_fn(|_| None),
+        detailed_cars: std::array::from_fn(|_| None),
+        car_renderer: crate::car_render::CarRenderer::load(base).await,
         light_model,
         road_model,
         font,

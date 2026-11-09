@@ -7,6 +7,7 @@ description = "Playable single-player port of Dr. Driving 1.73 (macroquad front 
 [dependencies]
 drdriving_core = { path = ".." }
 macroquad = { version = "0.4", default-features = false }
+serde_json = "1.0"
 
 # the built-in mixer is only used where it is safe (see build.rs)
 [target.'cfg(any(target_arch = "wasm32", not(target_os = "linux")))'.dependencies]
@@ -14,8 +15,10 @@ macroquad = { version = "0.4", default-features = false, features = ["audio"] }
 
 # multiplayer: Firebase Realtime Database over HTTPS (the browser build uses the page's fetch)
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-serde_json = "1.0"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_UI_Controls_Dialogs", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi", "Win32_UI_Shell"] }

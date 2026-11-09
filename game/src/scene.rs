@@ -341,21 +341,38 @@ pub fn render_world(a: &Assets, w: &World, right_driver: bool, view: &View, drif
     }
 
     // traffic, brake lights, wheels
+    let default_material = if mirrored { &a.mats.mirrored } else { &a.mats.normal };
     for c in w.cars.iter().filter(|c| c.visible) {
         let m = at(c.rec.c.x, 0.0, c.rec.c.y, 180.0 - c.angle as f32);
-        a.car_model[c.kind].draw(&a.car_tex[c.kind], &m, WHITE);
-        if c.braking {
+        if let Some(detailed) = &a.detailed_cars[c.kind] {
+            a.car_renderer.shadow(m, detailed.width, detailed.length);
+            detailed.draw(&a.car_renderer,m,view.cam.position,c.ang_distance*DEG,0.0,1.0);
+            gl_use_material(default_material);
+        } else {
+            a.car_model[c.kind].draw_driving(&a.car_tex[c.kind], &m, WHITE, c.ang_distance * DEG, 0.0);
+        }
+        if c.braking && !a.custom_car[c.kind] {
             a.light_model[c.kind].draw(&rt[9], &m, WHITE);
         }
-        draw_wheels(a, c.rec.c.x, c.rec.c.y, 180.0 - c.angle as f32, c.wheel_height, c.wheel_front, c.wheel_back, c.wheel_width_ratio, c.ang_distance);
+        if !a.custom_car[c.kind] {
+            draw_wheels(a, c.rec.c.x, c.rec.c.y, 180.0 - c.angle as f32, c.wheel_height, c.wheel_front, c.wheel_back, c.wheel_width_ratio, c.ang_distance);
+        }
     }
     let p = &w.player;
     let m = at(p.cx, 0.0, p.cy, 180.0 - p.angle);
-    a.car_model[p.kind].draw(&a.car_tex[p.kind], &m, WHITE);
-    if p.braking {
+    if let Some(detailed) = &a.detailed_cars[p.kind] {
+        a.car_renderer.shadow(m,detailed.width,detailed.length);
+        detailed.draw(&a.car_renderer,m,view.cam.position,p.ang_distance*DEG,-p.wheel_angle.clamp(-30.0,30.0)*DEG,1.0);
+        gl_use_material(default_material);
+    } else {
+        a.car_model[p.kind].draw_driving(&a.car_tex[p.kind], &m, WHITE, p.ang_distance * DEG, -p.wheel_angle.clamp(-30.0, 30.0) * DEG);
+    }
+    if p.braking && !a.custom_car[p.kind] {
         a.light_model[p.kind].draw(&rt[9], &m, WHITE);
     }
-    draw_wheels(a, p.cx, p.cy, 180.0 - p.angle, p.wheel_height, car(p.kind).wheel_front, car(p.kind).wheel_back, car(p.kind).wheel_width_ratio, p.ang_distance);
+    if !a.custom_car[p.kind] {
+        draw_wheels(a, p.cx, p.cy, 180.0 - p.angle, p.wheel_height, car(p.kind).wheel_front, car(p.kind).wheel_back, car(p.kind).wheel_width_ratio, p.ang_distance);
+    }
 
     // the remote opponent (`renderOpponentCar`): drawn with glColor4f(0.2, 0.2, 0.2, 0.2), a faint
     // dark shadow of a car that never collides with ours
@@ -363,8 +380,10 @@ pub fn render_world(a: &Assets, w: &World, right_driver: bool, view: &View, drif
         let o = &w.opponent;
         let ghost = Color::new(0.2, 0.2, 0.2, 0.2);
         let m = at(o.cx, 0.0, o.cy, 180.0 - o.angle);
-        a.car_model[o.kind].draw(&a.car_tex[o.kind], &m, ghost);
-        draw_wheels_tinted(a, o.cx, o.cy, 180.0 - o.angle, o.wheel_height, car(o.kind).wheel_front, car(o.kind).wheel_back, car(o.kind).wheel_width_ratio, o.ang_distance, ghost);
+        a.car_model[o.kind].draw_driving(&a.car_tex[o.kind], &m, ghost, o.ang_distance * DEG, 0.0);
+        if !a.custom_car[o.kind] {
+            draw_wheels_tinted(a, o.cx, o.cy, 180.0 - o.angle, o.wheel_height, car(o.kind).wheel_front, car(o.kind).wheel_back, car(o.kind).wheel_width_ratio, o.ang_distance, ghost);
+        }
     }
 
     // roadside fences
@@ -407,18 +426,26 @@ fn draw_characters(a: &Assets, w: &World, _mission: Mission) {
 
 /// Garage car (`renderCurCar`): fixed 330 degree turn, camera 22 units back, drawn straight onto
 /// the screen in an 800x500 viewport anchored at the bottom (taller than most screens).
-pub fn render_cur_car(a: &Assets, g: &Gfx, kind: usize) {
+pub fn render_cur_car(a: &Assets, g: &Gfx, kind: usize, wheel_phase: f32) {
     let mut cam = camera(13.0, 4.0, 25.0, vec3(0.0, 5.0, 22.0), vec3(0.0, 1.5, 0.0), Vec3::Y, Some(1.6));
     cam.viewport = Some(g.viewport_px(g.shift, 0.0, 800.0, 500.0));
     set_camera(&cam);
     gl_use_material(&a.mats.normal);
     let info = car(kind);
     let m = Mat4::from_rotation_y(330.0_f32.to_radians());
-    a.car_model[kind].draw(&a.car_tex[kind], &m, WHITE);
-    let scale = Mat4::from_scale(vec3(info.wheel_width_ratio, info.wheel_height, info.wheel_height));
-    for z in [info.wheel_front, -info.wheel_back] {
-        let wm = m * Mat4::from_translation(vec3(0.0, info.wheel_height, z)) * scale;
-        a.road_model[7].draw(&a.road_tex[7], &wm, WHITE);
+    if let Some(detailed) = &a.detailed_cars[kind] {
+        a.car_renderer.shadow(m,detailed.width,detailed.length);
+        detailed.draw(&a.car_renderer,m,cam.position,wheel_phase*DEG,0.0,1.0);
+        gl_use_material(&a.mats.normal);
+    } else {
+        a.car_model[kind].draw_driving(&a.car_tex[kind], &m, WHITE, wheel_phase * DEG, 0.0);
+    }
+    if !a.custom_car[kind] {
+        let scale = Mat4::from_scale(vec3(info.wheel_width_ratio, info.wheel_height, info.wheel_height));
+        for z in [info.wheel_front, -info.wheel_back] {
+            let wm = m * Mat4::from_translation(vec3(0.0, info.wheel_height, z)) * Mat4::from_rotation_x(wheel_phase * DEG) * scale;
+            a.road_model[7].draw(&a.road_tex[7], &wm, WHITE);
+        }
     }
     gl_use_default_material();
     set_default_camera();

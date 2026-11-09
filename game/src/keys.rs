@@ -31,6 +31,10 @@ pub fn key_from_name(n: &str) -> Option<KeyCode> {
         "2" => KeyCode::Key2,
         "3" => KeyCode::Key3,
         "4" => KeyCode::Key4,
+        "5" => KeyCode::Key5,
+        "6" => KeyCode::Key6,
+        "7" => KeyCode::Key7,
+        "8" => KeyCode::Key8,
         s if s.len() == 1 => match s.as_bytes()[0] {
             b'a' => KeyCode::A,
             b'b' => KeyCode::B,
@@ -38,6 +42,7 @@ pub fn key_from_name(n: &str) -> Option<KeyCode> {
             b'd' => KeyCode::D,
             b'e' => KeyCode::E,
             b'h' => KeyCode::H,
+            b'l' => KeyCode::L,
             b'n' => KeyCode::N,
             b'p' => KeyCode::P,
             b'q' => KeyCode::Q,

@@ -71,8 +71,9 @@ impl Game {
         g.h(ui, S::UI[6], cw, sh * 0.25);
         self.bf.d(g, ui, CLASS_NAMES[c % 4], cw, (sh * 0.25) - 24.0, 0.5);
         g.set_tint(COLOR_RED);
-        self.bf.c(g, ui, drdriving_core::cars::car(c).name, cw, sh * 0.25);
+        self.bf.c(g, ui, self.a.custom_car_name[c].as_deref().unwrap_or(drdriving_core::cars::car(c).name), cw, sh * 0.25);
         g.clear_tint();
+        self.text.e(g, "Car list (L)", 400.0, 70.0, 0, 18.0, 95.0);
         self.render_screen_pad(false);
     }
 
@@ -458,6 +459,8 @@ impl Game {
             13 => self.render_exit(),
             14 => self.render_lobby(),
             15 => self.render_picker(),
+            16 => self.render_car_catalog(),
+            17 => self.render_showroom(),
             _ => {}
         }
         if matches!(self.mode, 8..=12) {

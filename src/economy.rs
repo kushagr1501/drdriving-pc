@@ -12,6 +12,14 @@ pub const MAX_DAMAGE: i32 = 9000;
 /// Highest upgrade level per ability: the Java requires the current level to be <= 9.
 pub const MAX_UPGRADE: i32 = 10;
 
+/// Local sandbox: every selectable car is owned and rentals do not expire.
+pub fn enable_local_sandbox(s: &mut SaveGame) {
+    s.coin = i32::MAX;
+    s.gold = i32::MAX;
+    s.has_car[..PLAYER_CARS].fill(true);
+    s.car_rent[PURCHASABLE_CARS..PLAYER_CARS].fill(i32::MAX);
+}
+
 // ---------------------------------------------------------------- levels
 
 /// `iGetBaseExpForLevel` — total XP needed to *reach* `level`.
@@ -79,13 +87,17 @@ fn pay(s: &mut SaveGame, price: i32) -> Result<(), ShopError> {
         if cost > s.coin {
             return Err(ShopError::NotEnough);
         }
-        s.coin -= cost;
+        if s.coin != i32::MAX {
+            s.coin -= cost;
+        }
     } else {
         // Java: `price <= 0 || price > gold` -> refuse. A zero price cannot be bought.
         if price <= 0 || price > s.gold {
             return Err(ShopError::NotEnough);
         }
-        s.gold -= price;
+        if s.gold != i32::MAX {
+            s.gold -= price;
+        }
     }
     Ok(())
 }
@@ -120,8 +132,10 @@ pub fn rent_car(s: &mut SaveGame, c: usize) -> Result<(), ShopError> {
 /// `buyCoin(coins, goldCost)` — gold -> coin exchange (rates are UI-defined in the original).
 pub fn buy_coin(s: &mut SaveGame, coins: i32, gold_cost: i32) -> Result<(), ShopError> {
     if coins >= 1 && gold_cost >= 1 && s.gold >= gold_cost {
-        s.gold -= gold_cost;
-        s.coin += coins;
+        if s.gold != i32::MAX {
+            s.gold -= gold_cost;
+        }
+        s.coin = s.coin.saturating_add(coins);
         Ok(())
     } else {
         Err(ShopError::NotEnough)
@@ -150,7 +164,9 @@ pub fn upgrade_car(s: &mut SaveGame, c: usize, ability: usize) -> Result<(), Sho
     if cost > s.coin {
         return Err(ShopError::NotEnough);
     }
-    s.coin -= cost;
+    if s.coin != i32::MAX {
+        s.coin -= cost;
+    }
     s.upgrade[c][ability] += 1;
     s.car_damage[c] = 0;
     Ok(())
@@ -177,7 +193,9 @@ pub fn repair_car(s: &mut SaveGame, c: usize) -> Result<i32, ShopError> {
     if s.coin < cost {
         return Err(ShopError::NotEnough);
     }
-    s.coin -= cost;
+    if s.coin != i32::MAX {
+        s.coin -= cost;
+    }
     s.car_damage[c] = 0;
     Ok(cost)
 }
@@ -196,8 +214,8 @@ pub fn gold_for_sku(sku: &str) -> Option<i32> {
 pub fn apply_purchase(s: &mut SaveGame, sku: &str) -> bool {
     match gold_for_sku(sku) {
         Some(g) => {
-            s.gold += g;
-            s.bought_gold += g;
+            s.gold = s.gold.saturating_add(g);
+            s.bought_gold = s.bought_gold.saturating_add(g);
             true
         }
         None => false,
@@ -311,7 +329,7 @@ pub fn finish_mission(s: &mut SaveGame, run: &RunStats, outcome: Outcome) -> Vec
     s.travel_distance = (s.travel_distance as f32 + run.travel_distance) as i32;
     s.drift_distance = (s.drift_distance as f32 + run.drift_distance) as i32;
     s.travel_second = (s.travel_second as f32 + run.travel_time) as i32;
-    s.coin += run.coins_acquired;
+    s.coin = s.coin.saturating_add(run.coins_acquired);
     s.sub_mission += run.sub_missions;
     s.perfect_turn += run.perfect_turns;
     if run.speed_max * 1000.0 > s.max_speed as f32 {
@@ -332,7 +350,7 @@ pub fn finish_mission(s: &mut SaveGame, run: &RunStats, outcome: Outcome) -> Vec
         if s.car_damage[c] > MAX_DAMAGE {
             s.car_damage[c] = MAX_DAMAGE;
         }
-        if c >= PURCHASABLE_CARS {
+        if c >= PURCHASABLE_CARS && s.car_rent[c] != i32::MAX {
             let left = (s.car_rent[c] as f32 - run.travel_distance) as i32;
             s.car_rent[c] = left;
             if left < 0 {
@@ -348,7 +366,7 @@ pub fn finish_mission(s: &mut SaveGame, run: &RunStats, outcome: Outcome) -> Vec
             continue;
         }
         if achievement_stat(s, a.kind) >= a.required {
-            s.coin += a.coin_reward;
+            s.coin = s.coin.saturating_add(a.coin_reward);
             s.achievement[a.id] = true;
             unlocked.push(a.id);
         }
@@ -377,7 +395,7 @@ pub fn complete_mission_success(s: &mut SaveGame, run: &RunStats) -> SuccessResu
     if reward < 25 {
         reward = 25;
     }
-    s.coin += reward;
+    s.coin = s.coin.saturating_add(reward);
     s.driver_exp += reward * 15;
     s.driver_level = level_for_exp(s.driver_exp as f32);
     s.missions_clear_count += 1;
@@ -419,7 +437,7 @@ pub fn finish_multiplayer(
         if c < 5 {
             c = 5;
         }
-        s.coin += c;
+        s.coin = s.coin.saturating_add(c);
         s.driver_exp += c * 5;
         s.driver_level = level_for_exp(s.driver_exp as f32);
     }
@@ -469,7 +487,7 @@ pub fn finish_multiplayer(
     let mut gold_bonus = false;
     if won && s.mb < 10000 && (outcome == Outcome::Success || run.travel_distance > 500.0) {
         s.mb += 1;
-        s.gold += 1;
+        s.gold = s.gold.saturating_add(1);
         gold_bonus = true;
     }
 

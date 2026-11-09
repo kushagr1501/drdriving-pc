@@ -1,0 +1,158 @@
+[
+  {
+    "id": "audi-q3",
+    "brand": "Audi",
+    "model": "Q3",
+    "years": [
+      2000,
+      2024
+    ],
+    "category": "suv",
+    "file": "audi-q3.glb",
+    "bytes": 822332,
+    "paint": {
+      "materials": [
+        "Carpaint_Pearl_Orange"
+      ],
+      "textured": false,
+      "confidence": "alta"
+    },
+    "credit": {
+      "author": "3DCars4U",
+      "authorUrl": "https://sketchfab.com/3dcarsforyou",
+      "license": "CC Attribution",
+      "sourceName": "AUDI Q3 SPORTBACK",
+      "sourceUrl": "https://sketchfab.com/3d-models/a0159b9bee094c2d8f9b9d5694c94f45"
+    },
+    "slot": 20
+  },
+  {
+    "id": "tesla-cybertruck",
+    "brand": "Tesla",
+    "model": "Cybertruck",
+    "years": [
+      2024,
+      2024
+    ],
+    "category": "pickup",
+    "file": "tesla-cybertruck.glb",
+    "bytes": 1415604,
+    "paint": {
+      "materials": [
+        "body"
+      ],
+      "textured": true,
+      "confidence": "alta"
+    },
+    "credit": {
+      "author": "hashikemu",
+      "authorUrl": "https://sketchfab.com/hashikemu",
+      "license": "CC Attribution",
+      "sourceName": "Tesla Cybertruck",
+      "sourceUrl": "https://sketchfab.com/3d-models/657e71b3e2ad468196668e9c9df708fb"
+    },
+    "slot": 21
+  },
+  {
+    "id": "bmw-i8",
+    "brand": "BMW",
+    "model": "i8",
+    "years": [
+      2000,
+      2024
+    ],
+    "category": "sports",
+    "file": "bmw-i8.glb",
+    "bytes": 2715356,
+    "paint": {
+      "materials": [
+        "bBMW_i8Elite_2017Coloured_Material1"
+      ],
+      "textured": true,
+      "confidence": "alta"
+    },
+    "credit": {
+      "author": "vecarz",
+      "authorUrl": "https://sketchfab.com/heynic",
+      "license": "CC Attribution",
+      "sourceName": "BMW i8 XS 2015 | www.vecarz.com",
+      "sourceUrl": "https://sketchfab.com/3d-models/b7108d20560c43e2b0a2d1473b311cfb"
+    },
+    "slot": 26
+  },
+  {
+    "id": "mclaren-720s",
+    "brand": "McLaren",
+    "model": "720S",
+    "years": [
+      2000,
+      2024
+    ],
+    "category": "sports",
+    "file": "mclaren-720s.glb",
+    "bytes": 1390584,
+    "paint": {
+      "materials": [
+        "body"
+      ],
+      "textured": true,
+      "confidence": "alta"
+    },
+    "credit": {
+      "author": "_shobh19",
+      "authorUrl": "https://sketchfab.com/s0h1o9b",
+      "license": "CC Attribution",
+      "sourceName": "2017 Mclaren 720s",
+      "sourceUrl": "https://sketchfab.com/3d-models/f7bece69400f4640a4a3be746b44998b"
+    },
+    "slot": 23
+  },
+  {
+    "id": "lamborghini-urus",
+    "brand": "Lamborghini",
+    "model": "Urus",
+    "years": [
+      2018,
+      2018
+    ],
+    "category": "suv",
+    "file": "lamborghini-urus.glb",
+    "bytes": 1072284,
+    "paint": {
+      "materials": [
+        "body"
+      ],
+      "textured": false,
+      "confidence": "média"
+    },
+    "credit": {
+      "author": "Kai Xiang",
+      "authorUrl": "https://sketchfab.com/kirikom9000",
+      "license": "CC Attribution",
+      "sourceName": "Lamborghini Urus 2018",
+      "sourceUrl": "https://sketchfab.com/3d-models/none-32964087f5d24c3e90482724ddfc2fef"
+    },
+    "slot": 22
+  },
+  {
+    "id": "porsche-911-c4s",
+    "brand": "Porsche",
+    "model": "911 C4S",
+    "years": [
+      2020,
+      2020
+    ],
+    "category": "sports",
+    "file": "porsche-911-c4s.glb",
+    "bytes": 1618524,
+    "paint": null,
+    "credit": {
+      "author": "JK3Dstudios",
+      "authorUrl": "https://sketchfab.com/JK3Dstudio",
+      "license": "CC Attribution",
+      "sourceName": "Porsche 911 C4S 2020 Aerokit",
+      "sourceUrl": "https://sketchfab.com/3d-models/none-ee69c474a1cc4085944cde4cb7ae87db"
+    },
+    "slot": 25
+  }
+]

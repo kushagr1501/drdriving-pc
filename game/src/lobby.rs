@@ -155,6 +155,10 @@ impl Game {
 
     /// `startQuickOnlineGame(0)`: look for an opponent of similar rating.
     pub fn start_quick(&mut self) {
+        if self.unlimited_coins || self.a.custom_car.iter().any(|v| *v) {
+            self.lobby.toast = Some(("Online play is unavailable with sandbox mode or custom cars.".into(), 4.0));
+            return;
+        }
         if self.net.is_some() || self.searching() {
             return;
         }
@@ -164,6 +168,10 @@ impl Game {
 
     /// `startQuickOnlineGame(n)` for a friend channel.
     pub fn start_channel(&mut self, n: i32) {
+        if self.unlimited_coins || self.a.custom_car.iter().any(|v| *v) {
+            self.lobby.toast = Some(("Online play is unavailable with sandbox mode or custom cars.".into(), 4.0));
+            return;
+        }
         if self.net.is_some() || self.searching() {
             return;
         }

@@ -64,6 +64,14 @@ pub mod sp {
     pub const CH_PLAY: usize = 41;
     pub const CH_CANCEL: usize = 42;
     pub const CH_PICK_CANCEL: usize = 43;
+    pub const IMPORT_CAR: usize = 44;
+    pub const RESTORE_CAR: usize = 45;
+    pub const CAR_LIST: usize = 46;
+    pub const LIST_PREV: usize = 47;
+    pub const LIST_NEXT: usize = 48;
+    pub const LIST_BACK: usize = 49;
+    pub const LIST_ROW: usize = 50;
+    pub const SHOWROOM: usize = 58;
 }
 
 /// Centre line of the tab strip (profile / garage / store / settings). The original put it at
@@ -187,6 +195,16 @@ pub struct Game {
 
     pub auto: bool,
     pub no_traffic: bool,
+    /// Local sandbox: unlimited currency and all selectable cars unlocked.
+    pub unlimited_coins: bool,
+    pub custom_cars: crate::custom_cars::CustomCars,
+    pub catalog_page: usize,
+    pub catalog_return: i32,
+    /// Fixed wheel phase for reproducible garage captures; normal play leaves this at zero.
+    pub preview_wheel_phase: f32,
+    pub showroom_yaw: f32,
+    pub showroom_pitch: f32,
+    pub showroom_distance: f32,
     pub quit: bool,
     // pointer state
     pub touch_seen: bool,
@@ -220,7 +238,13 @@ fn rt(w: u32, h: u32) -> RenderTarget {
 }
 
 impl Game {
-    pub fn new(a: Assets, audio: Audio, save: SaveGame, seed: i64) -> Game {
+    pub fn new(mut a: Assets, audio: Audio, save: SaveGame, seed: i64) -> Game {
+        let unlimited_coins = persist::sandbox_enabled();
+        let mut save = save;
+        if unlimited_coins {
+            economy::enable_local_sandbox(&mut save);
+        }
+        let custom_cars = crate::custom_cars::CustomCars::load(&mut a);
         let car0 = economy::best_car_id(&save);
         let mut world = World::new(car0, Some(seed));
         world.init_map(&save);
@@ -270,6 +294,14 @@ impl Game {
             kb_brake: false,
             auto: false,
             no_traffic: false,
+            unlimited_coins,
+            custom_cars,
+            catalog_page: 0,
+            catalog_return: 9,
+            preview_wheel_phase: 0.0,
+            showroom_yaw: -0.52,
+            showroom_pitch: 0.16,
+            showroom_distance: 6.8,
             quit: false,
             touch_seen: false,
             touch_ids: Vec::new(),
@@ -358,6 +390,17 @@ impl Game {
         p[sp::CH_CANCEL].set_pad(PAD_CLICK, 27, cw - 150.0, sh * 0.53 + 80.0, 110.0, 40.0);
         p[sp::CH_PLAY].set_pad(PAD_CLICK, 28, cw + 150.0, sh * 0.53 + 80.0, 110.0, 40.0);
         p[sp::CH_PICK_CANCEL].set_pad(PAD_CLICK, 27, cw, Self::pick_cancel_pos(sh), 60.0, 24.0);
+        p[sp::IMPORT_CAR].set_pad(PAD_CLICK, -1, 400.0, sh * 0.45, 95.0, 18.0);
+        p[sp::RESTORE_CAR].set_pad(PAD_CLICK, -1, 400.0, sh * 0.45 + 45.0, 95.0, 18.0);
+        let list_y = if self.mode == 1 { 70.0 } else { sh * 0.45 - 75.0 };
+        p[sp::CAR_LIST].set_pad(PAD_CLICK, -1, 400.0, list_y, 95.0, 18.0);
+        p[sp::SHOWROOM].set_pad(PAD_CLICK, -1, 630.0, sh * 0.45 - 75.0, 100.0, 18.0);
+        for (id, x) in [(sp::LIST_PREV, 180.0), (sp::LIST_BACK, 400.0), (sp::LIST_NEXT, 620.0)] {
+            p[id].set_pad(PAD_CLICK, -1, x, sh - 45.0, 85.0, 22.0);
+        }
+        for row in 0..8 {
+            p[sp::LIST_ROW + row].set_pad(PAD_CLICK, -1, 400.0, 125.0 + row as f32 * ((sh - 210.0) / 8.0).clamp(28.0, 54.0), 310.0, 22.0);
+        }
         self.adjust_wheel_position();
     }
 
@@ -407,7 +450,8 @@ impl Game {
     }
 
     pub fn stop_race_sounds(&mut self) {
-        for s in [Snd::Engine, Snd::Blinker, Snd::Drift] {
+        self.audio.stop_engine();
+        for s in [Snd::Blinker, Snd::Drift] {
             self.audio.set_loop(s, false, 0.0);
         }
     }
@@ -529,6 +573,9 @@ impl Game {
             0 => self.cur_app = (self.world.rng.next_int_bound(24)) as usize,
             1 => {
                 p.clear();
+                p.p[sp::CAR_LIST].y = 70.0;
+                p.p[sp::CAR_LIST].ry = 70.0;
+                p.activate(sp::CAR_LIST);
                 for i in [sp::REPAIR, sp::MISSION_L, sp::MISSION_R, sp::CAR_L, sp::CAR_R, sp::RACE, sp::BACK_TO_MENU] {
                     p.activate(i);
                 }
@@ -550,7 +597,10 @@ impl Game {
                 ] {
                     self.pads.activate(i);
                 }
-                self.sfx(Snd::Start, 0.3);
+                self.audio.enabled = !self.save.sound_disabled;
+                let c = self.session.as_ref().map_or(self.world.car_mode, |s| s.world.car_mode);
+                let name = self.a.custom_car_name[c].as_deref().unwrap_or(car(c).name);
+                self.audio.start_car(crate::drive_audio::Voice::for_name(name));
             }
             3 => {
                 if self.save.accel_disabled {
@@ -590,6 +640,14 @@ impl Game {
             }
             9 => {
                 p.clear();
+                p.p[sp::CAR_LIST].y = self.g.sh * 0.45 - 75.0;
+                p.p[sp::CAR_LIST].ry = p.p[sp::CAR_LIST].y;
+                p.activate(sp::CAR_LIST);
+                p.activate(sp::SHOWROOM);
+                if cfg!(target_os = "windows") {
+                    p.activate(sp::IMPORT_CAR);
+                    p.activate(sp::RESTORE_CAR);
+                }
                 for i in [sp::SCROLL, sp::PROFILE_L, sp::PROFILE_R] {
                     p.activate(i);
                 }
@@ -624,6 +682,15 @@ impl Game {
                 }
             }
             12 => p.deactivate_all(),
+            16 => {
+                p.clear();
+                for i in [sp::LIST_PREV, sp::LIST_NEXT, sp::LIST_BACK] { p.activate(i); }
+                for row in 0..8 { p.activate(sp::LIST_ROW + row); }
+            }
+            17 => {
+                p.clear();
+                for i in [sp::LIST_PREV, sp::LIST_NEXT, sp::LIST_BACK] { p.activate(i); }
+            }
             14 => {
                 p.clear();
                 p.activate(sp::CH_CANCEL);
@@ -693,7 +760,15 @@ impl Game {
     // ------------------------------------------------------------------ the frame
 
     pub fn persist(&self) {
-        persist::store(&self.save);
+        let mut save = self.save.clone();
+        // Keep the cheat's runtime sentinel out of the save so turning the option off restores
+        // ordinary spending rules on the next launch.
+        if self.unlimited_coins {
+            save.coin = 1_000_000;
+            save.gold = 1_000_000;
+            save.car_rent[PURCHASABLE_CARS..PLAYER_CARS].fill(economy::RENT_DISTANCE);
+        }
+        persist::store(&save);
     }
 
     /// Edge-anchor HUD / menu-corner elements on race and tab screens (see `Gfx::off`).
@@ -708,6 +783,12 @@ impl Game {
 
     /// Advance one fixed 1/60 s step.
     pub fn update(&mut self, dt: f32) {
+        if self.unlimited_coins {
+            economy::enable_local_sandbox(&mut self.save);
+        }
+        if let Some(notice) = self.custom_cars.poll(&mut self.a) {
+            self.show_toast(&notice);
+        }
         self.set_anchor();
         self.keys.tick(dt);
         self.clock += dt;
@@ -743,6 +824,8 @@ impl Game {
             13 => self.process_exit(),
             14 => self.process_lobby(),
             15 => self.process_picker(),
+            16 => self.process_car_catalog(),
+            17 => self.process_showroom(),
             _ => {}
         }
         // shared menu-bar buttons (active only in the tab modes and the car-select flow)
@@ -978,6 +1061,10 @@ impl Game {
     // ------------------------------------------------------------------ car select (mode 1)
 
     fn process_car_select(&mut self) {
+        if self.pads.get_clicked(sp::CAR_LIST) || self.keys.pressed(KeyCode::L) {
+            self.open_car_catalog();
+            return;
+        }
         let dt = self.dt.min(0.1);
         let p = &mut self.world.player;
         if p.cy < 1984.0 {
@@ -1197,8 +1284,8 @@ impl Game {
             let w = &s.world;
             self.audio.enabled = sound_on;
             let live = matches!(s.phase, Phase::Starting | Phase::Playing);
-            self.audio.set_loop(Snd::Engine, live, 0.9);
-            self.audio.loop_volume(Snd::Engine, 0.35 + 0.6 * (w.speed / 25.0).min(1.0));
+            let name = self.a.custom_car_name[w.car_mode].as_deref().unwrap_or(car(w.car_mode).name);
+            self.audio.update_engine(live, crate::drive_audio::Voice::for_name(name), w.speed, input.accel, self.dt);
             self.audio.set_loop(Snd::Blinker, live && (w.blinker != 0 || w.emergency), 0.5);
             self.audio.set_loop(Snd::Drift, live && w.drifting, 0.5);
         }
@@ -1426,7 +1513,7 @@ impl Game {
 
 pub fn car_status(save: &SaveGame, c: usize) -> String {
     let info = car(c);
-    if save.has_car[c] && c < 16 {
+    if save.has_car[c] && (c < 16 || save.car_rent[c] == i32::MAX) {
         "Owned".to_string()
     } else if c < 16 || save.car_rent[c] <= 0 {
         if info.price < 0 {

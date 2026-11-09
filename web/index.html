@@ -5,22 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Dr. Driving</title>
-<meta name="description" content="Dr. Driving for PC and the web: drive, park, drift and race online against other players.">
+<title>Dr. Driving — Modern Garage</title>
+<meta name="description" content="Play Dr. Driving in your browser with seven detailed modern cars, a 3D showroom, unlimited coins and gold, and all cars unlocked.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Dr. Driving">
-<meta property="og:title" content="Dr. Driving">
-<meta property="og:description" content="Play Dr. Driving right in your browser: drive, park, drift and race online.">
-<meta property="og:url" content="https://krishnassh.github.io/DrDriving-PC/">
-<meta property="og:image" content="https://krishnassh.github.io/DrDriving-PC/og.png">
+<meta property="og:title" content="Dr. Driving — Modern Garage">
+<meta property="og:description" content="Seven modern cars. A detailed 3D showroom. Unlimited coins and gold. Play in your browser.">
+<meta property="og:url" content="__SITE_ORIGIN__/">
+<meta property="og:image" content="__SITE_ORIGIN__/og.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="A red sports car racing past an orange SUV on a city street in Dr. Driving">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Dr. Driving">
-<meta name="twitter:description" content="Play Dr. Driving right in your browser: drive, park, drift and race online.">
-<meta name="twitter:image" content="https://krishnassh.github.io/DrDriving-PC/og.png">
+<meta name="twitter:title" content="Dr. Driving — Modern Garage">
+<meta name="twitter:description" content="Drive seven modern cars with unlimited coins and gold, right in your browser.">
+<meta name="twitter:image" content="__SITE_ORIGIN__/og.png">
+<link rel="icon" href="icon.png">
 <style>
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden;
     overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -31,14 +32,40 @@
     display: none; align-items: center; justify-content: center; touch-action: manipulation; }
   #fs:hover, #fs:focus-visible { opacity: 1; }
   #fs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #welcome { position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(ellipse at 70% 20%,#203640 0%,#10181f 45%,#070b10 100%);color:#eff6f7;font:16px system-ui,sans-serif; }
+  #welcome section { width:min(570px,calc(100vw - 54px));padding:30px 0; }
+  #welcome .eyebrow { color:#a4d75b;font-size:12px;letter-spacing:.22em;font-weight:700; }
+  #welcome h1 { font-size:clamp(38px,8vw,64px);line-height:1.02;letter-spacing:-.045em;margin:18px 0 12px; }
+  #welcome p { line-height:1.65;color:#b5c4cc;max-width:490px; }
+  #welcome button { display:block;margin:26px 0 20px;background:#b4e664;color:#132013;border:0;border-radius:7px;font-size:18px;font-weight:750;padding:16px 38px;cursor:pointer; }
+  #welcome .controls { border-top:1px solid #ffffff1c;padding-top:18px;font-size:13px; }
+  #welcome a { color:#b9cbd5;text-underline-offset:4px; }
+  #failure { display:none;position:fixed;inset:0;z-index:40;place-items:center;background:#0d131bee;color:#fff;font:16px system-ui,sans-serif;text-align:center;padding:24px; }
+  #failure button { border:0;border-radius:6px;padding:12px 24px;background:#b4e664;color:#132013;font-weight:700;cursor:pointer; }
 </style>
 </head>
 <body>
 <canvas id="glcanvas" tabindex="1"></canvas>
+<div id="welcome"><section>
+  <div class="eyebrow">MODERN GARAGE / BROWSER EDITION</div>
+  <h1>Dr. Driving</h1>
+  <p>Take seven modern cars out for a drive, or get a closer look in the 3D showroom. All cars unlocked. Unlimited coins and gold.</p>
+  <button id="play" type="button">Play now</button>
+  <p class="controls">Use the on-screen driving controls or your keyboard. In the garage, <strong>L</strong> opens the car list and <strong>V</strong> opens the showroom.<br>First launch downloads the game and car models. Progress saves in this browser.</p>
+  <p class="controls"><a href="CREDITS.md" target="_blank" rel="noopener">Car models &amp; credits</a> · <a href="LICENSE.txt" target="_blank" rel="noopener">License</a></p>
+</section></div>
+<div id="failure" role="alert"><section><h2>The game couldn’t start</h2><p id="failure-message">Check your connection and try again.</p><button type="button" onclick="location.reload()">Retry</button></section></div>
 <button id="fs" type="button" title="Fullscreen" aria-label="Toggle fullscreen">
   <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
 </button>
 <script>
+function drFailure(message) {
+  document.getElementById('failure-message').textContent=message || 'Check your connection and try again.';
+  document.getElementById('failure').style.display='grid';
+}
+window.addEventListener('error',function(e){if(e.message && /wasm|WebGL|unreachable|memory|shader|RuntimeError/i.test(e.message))drFailure('The game could not load. Please use a browser with WebGL enabled and try again.');});
+window.addEventListener('unhandledrejection',function(){drFailure('The game could not finish loading. Check your connection and try again.');});
+document.getElementById('play').addEventListener('click',function(){document.getElementById('welcome').style.display='none';document.getElementById('glcanvas').focus();});
 // ---- 1. start downloading all game assets right away, in parallel with the wasm ----------------
 // assets.bin is one file (see web/build.sh); the game polls these counters for its loading screen.
 var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, state: 0, data: null };
@@ -57,14 +84,14 @@ var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, s
       });
     }
     return pump();
-  }).catch(function (e) { console.warn("asset bundle failed, falling back to per-file loading", e); drBundle.state = -1; });
+  }).catch(function (e) { console.warn("asset bundle failed", e); drBundle.state = -1; drFailure('The game download was interrupted. Check your connection and retry.'); });
 })();
 </script>
 <script src="mq_js_bundle.js"></script>
 <script>
 // ---- 2. imports the wasm expects: save-game storage + the asset bundle -------------------------
 (function () {
-  var KEY = "drdriving.save";
+  var KEY = "drdriving.sandbox.save.v1";
   var enc = new TextEncoder();
   miniquad_add_plugin({
     name: "drdriving_web",

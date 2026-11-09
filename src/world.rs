@@ -1199,7 +1199,7 @@ impl World {
             }
             self.player.x += self.player.v.x * dt;
             self.player.y += self.player.v.y * dt;
-            self.player.ang_distance += self.speed * dt * self.player.ang_velocity;
+            self.player.ang_distance += self.speed * dt * self.player.ang_velocity * if self.gear == GEAR_R { -1.0 } else { 1.0 };
 
             let along = if self.curr_dir.x == 0 {
                 (self.dst.1 * 140) as f32 - self.player.y

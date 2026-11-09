@@ -1,5 +1,10 @@
 mod assets;
 mod audio;
+mod car_catalog;
+mod car_render;
+mod showroom;
+mod custom_cars;
+mod drive_audio;
 mod game;
 mod gfx;
 mod http;
@@ -60,7 +65,8 @@ fn draw_label(label: &str, font: &Option<Font>) {
 pub async fn boot(base: &str, save: drdriving_core::save::SaveGame, seed: i64) -> Game {
     let mut g = gfx::Gfx::new();
     let cur = (seed.unsigned_abs() % 24) as usize;
-    let a = assets::load(base, &mut |frac, label, logo, font| {
+    #[allow(unused_mut)]
+    let mut a = assets::load(base, &mut |frac, label, logo, font| {
         g.layout();
         clear_background(BLACK);
         let text = gfx::GlText { font: font.clone() };
@@ -75,6 +81,8 @@ pub async fn boot(base: &str, save: drdriving_core::save::SaveGame, seed: i64) -
         })));
     })
     .await;
+    #[cfg(target_arch = "wasm32")]
+    custom_cars::load_bundled(&mut a).await;
     let audio = audio::Audio::load(base).await;
     assets::set_loading_draw(None);
     Game::new(a, audio, save, seed)
@@ -118,6 +126,10 @@ async fn run_web() {
     let seed = (macroquad::miniquad::date::now() * 1000.0) as i64;
     let save = persist::load();
     let mut game = boot(&assets::find_assets(), save, seed).await;
+    game.cargo.car=25;
+    game.world.car_mode=25;
+    game.world.init_map(&game.save);
+    game.enter_mode(9);
     game_loop(&mut game).await;
     // the browser tab can't "quit": just stop
     loop {

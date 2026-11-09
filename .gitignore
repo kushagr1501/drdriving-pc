@@ -1,2 +1,6 @@
 /target
 /web/dist
+/.local-tools/
+/local-test-assets/
+/tools/car-quality/node_modules/
+/.sites/

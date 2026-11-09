@@ -59,6 +59,8 @@ pub struct Audio {
     paths: Vec<PathBuf>,
     flags: Vec<bool>,
     pub enabled: bool,
+    #[cfg(native_audio)]
+    drive_banks: Option<crate::drive_audio::DriveBanks>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -178,6 +180,7 @@ impl Audio {
             }
             Audio {
                 backend: Backend::Native(sounds),
+                drive_banks: crate::drive_audio::DriveBanks::load(base).await,
                 #[cfg(not(target_arch = "wasm32"))]
                 paths: Vec::new(),
                 flags: vec![false; n],
@@ -193,6 +196,38 @@ impl Audio {
             #[cfg(not(target_arch = "wasm32"))]
             Backend::Players { names, .. } => names.clone(),
         }
+    }
+
+    pub fn driving_banks_ready(&self) -> bool {
+        #[cfg(native_audio)] { return self.drive_banks.is_some(); }
+        #[cfg(not(native_audio))] { false }
+    }
+
+    pub fn update_engine(&mut self, live: bool, voice: crate::drive_audio::Voice, speed: f32, throttle: bool, dt: f32) {
+        let mix = crate::drive_audio::driving_mix(voice, speed, throttle);
+        #[cfg(native_audio)]
+        if self.drive_banks.is_some() {
+            self.set_loop(Snd::Engine, false, 0.0);
+            self.drive_banks.as_mut().unwrap().update(live && self.enabled, mix, dt);
+            return;
+        }
+        self.set_loop(Snd::Engine, live, mix.petrol_gain + mix.motor_gain);
+        self.loop_volume(Snd::Engine, mix.petrol_gain + mix.motor_gain);
+    }
+
+    pub fn stop_engine(&mut self) {
+        self.set_loop(Snd::Engine, false, 0.0);
+        #[cfg(native_audio)]
+        if let Some(banks) = &mut self.drive_banks { banks.stop(); }
+    }
+
+    pub fn start_car(&mut self, voice: crate::drive_audio::Voice) {
+        if !self.enabled { return; }
+        #[cfg(native_audio)]
+        if voice == crate::drive_audio::Voice::Electric {
+            if let Some(banks) = &self.drive_banks { banks.motor_start(); return; }
+        }
+        self.play(Snd::Start, 0.3);
     }
 
     pub fn play(&mut self, s: Snd, vol: f32) {

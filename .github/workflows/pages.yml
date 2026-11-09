@@ -1,13 +1,10 @@
 name: Deploy web build to GitHub Pages
 
-# Runs on every pushed tag (same trigger as the release workflow). Nothing built is stored in
-# the repo: the wasm, JS glue and assets are assembled into web/dist on the runner and published
-# straight to Pages.
+# Builds the browser game and publishes it on changes to main or a manual run.
 
 on:
   push:
-    tags:
-      - "*"
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +20,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -34,9 +40,12 @@ jobs:
           key: wasm
 
       - name: Build web bundle
-        run: ./web/build.sh
+        run: node web/build.mjs
+        env:
+          DRDRIVING_SITE_URL: ${{ steps.pages.outputs.base_url }}
 
-      - uses: actions/configure-pages@v5
+      - name: Validate browser bundle
+        run: node web/validate.mjs
 
       - uses: actions/upload-pages-artifact@v3
         with:

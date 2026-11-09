@@ -7,6 +7,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// When set (`--ephemeral`), nothing is ever written.
 pub static READ_ONLY: AtomicBool = AtomicBool::new(false);
 
+/// This local build defaults to sandbox play. Set the variable to 0 for normal progression.
+pub fn sandbox_enabled() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    { true }
+    #[cfg(not(target_arch = "wasm32"))]
+    { std::env::var("DRDRIVING_UNLIMITED_COINS").as_deref() != Ok("0") }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn save_path() -> std::path::PathBuf {
     use std::path::PathBuf;
@@ -24,13 +32,13 @@ pub fn save_path() -> std::path::PathBuf {
         std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).or_else(|| home.clone().map(|h| h.join(".local/share")))
     }
     .unwrap_or_else(|| PathBuf::from("."));
-    base.join("drdriving").join("save.json")
+    base.join("drdriving").join(if sandbox_enabled() { "sandbox-save.json" } else { "save.json" })
 }
 
 #[cfg(target_arch = "wasm32")]
 #[allow(dead_code)]
 pub fn save_path() -> String {
-    "localStorage[drdriving.save]".to_string()
+    "localStorage[drdriving.sandbox.save.v1]".to_string()
 }
 
 /// Country code from `$LANG` (`en_US.UTF-8` -> `us`) for the right-/left-hand-drive default.

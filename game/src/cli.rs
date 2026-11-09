@@ -25,6 +25,8 @@ struct Opts {
     /// `Some(0)` = Online Match, `Some(n)` = friend channel n.
     online: Option<i32>,
     name: Option<String>,
+    car: Option<usize>,
+    wheel_phase: Option<f32>,
 }
 
 fn parse() -> Opts {
@@ -45,6 +47,8 @@ fn parse() -> Opts {
         gui: 0,
         online: None,
         name: None,
+        car: None,
+        wheel_phase: None,
     };
     let mut it = std::env::args().skip(1);
     while let Some(a) = it.next() {
@@ -65,6 +69,8 @@ fn parse() -> Opts {
                 }
             }
             "--name" => c.name = it.next(),
+            "--car" => c.car = it.next().and_then(|s| s.parse().ok()).filter(|c| *c < drdriving_core::cars::PLAYER_CARS),
+            "--wheel-phase" => c.wheel_phase = it.next().and_then(|s| s.parse::<f32>().ok()).filter(|v| v.is_finite()),
             "--ff" => c.ff = it.next().and_then(|s| s.parse().ok()).unwrap_or(1).max(1),
             "--script" => c.script = it.next().unwrap_or_default(),
             "--shot-dir" => c.shot_dir = it.next().unwrap_or_default(),
@@ -121,11 +127,35 @@ pub async fn run() {
     save.gui_size = if o.gui > 0 { o.gui } else { save.gui_size };
     let seed = o.seed.unwrap_or_else(|| (macroquad::miniquad::date::now() * 1000.0) as i64);
     let mut game = boot(&base, save, seed).await;
+    game.preview_wheel_phase = o.wheel_phase.unwrap_or(0.0);
+    if let Some(c) = o.car {
+        game.cargo.car = c;
+        game.world.car_mode = c;
+        game.world.init_map(&game.save);
+    }
     if o.audio_test {
         println!("audio backend: {}", game.audio.backend_name());
+        println!("speed-responsive sound banks loaded: {}", game.audio.driving_banks_ready());
+        for c in 0..drdriving_core::cars::PLAYER_CARS {
+            if game.a.custom_car[c] {
+                let wheels = game.a.detailed_cars[c].as_ref().map_or_else(||game.a.car_model[c].wheel_count(), |hq|hq.wheel_count());
+                println!("{}: {} animated wheels", game.a.custom_car_name[c].as_deref().unwrap_or("Custom car"), wheels);
+                if let Some(hq)=&game.a.detailed_cars[c] {
+                    println!("  detailed mesh: {} triangles",hq.triangles);
+                }
+            }
+        }
         game.audio.play(crate::audio::Snd::Horn, 1.0);
         for _ in 0..120 {
             next_frame().await;
+        }
+        for voice in [crate::drive_audio::Voice::Petrol, crate::drive_audio::Voice::Sport, crate::drive_audio::Voice::Hybrid, crate::drive_audio::Voice::Electric] {
+            println!("driving sound test: {voice:?}");
+            for frame in 0..90 {
+                game.audio.update_engine(true, voice, frame as f32 / 90.0 * 35.0, true, 1.0 / 60.0);
+                next_frame().await;
+            }
+            game.audio.stop_engine();
         }
         return;
     }
@@ -179,10 +209,12 @@ async fn screenshot(game: &mut Game, o: &Opts, path: &str) {
     let sc = o.scene.as_str();
     match sc {
         "garage" => game.enter_mode(9),
+        "showroom" => game.enter_mode(17),
+        "carlist" => { game.enter_mode(9); game.open_car_catalog(); },
         "store" => game.enter_mode(10),
         "options" => game.enter_mode(11),
         "carselect" => {
-            game.world.car_mode = 1;
+            game.world.car_mode = o.car.unwrap_or(1);
             game.enter_mode(1);
         }
         "dialog" => {
@@ -215,7 +247,7 @@ async fn screenshot(game: &mut Game, o: &Opts, path: &str) {
         }
         "menu" => {}
         _ => {
-            game.world.car_mode = 1;
+            game.world.car_mode = o.car.unwrap_or(1);
             game.world.mission = if sc == "highway" { Mission::Highway } else { Mission::Speed };
             game.enter_mode(1);
             game.start_race();

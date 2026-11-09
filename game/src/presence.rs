@@ -47,7 +47,7 @@ impl Game {
             small_image: String::new(),
             ..Default::default()
         };
-        let car_name = |id: usize| car(id.min(drdriving_core::cars::PLAYER_CARS.saturating_sub(1))).name;
+        let car_name = |id: usize| self.a.custom_car_name[id.min(27)].as_deref().unwrap_or(car(id.min(27)).name);
         let rated = format!("Rating {}", s.rating_value());
 
         if let (Some(sess), 2..=7) = (&self.session, self.mode) {

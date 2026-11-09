@@ -59,6 +59,27 @@ impl Game {
     }
 
     pub fn process_tab_cargo(&mut self) {
+        if self.pads.get_clicked(sp::SHOWROOM) || self.keys.pressed(KeyCode::V) {
+            self.enter_mode(17);
+            return;
+        }
+        if self.pads.get_clicked(sp::CAR_LIST) || self.keys.pressed(KeyCode::L) {
+            self.open_car_catalog();
+            return;
+        }
+        if self.pads.get_clicked(sp::IMPORT_CAR) {
+            if self.net.is_some() {
+                self.show_toast("Leave online play before importing a custom car.");
+            } else if let Err(e) = self.custom_cars.begin(self.cargo.car) {
+                self.show_toast(&e);
+            }
+            return;
+        }
+        if self.pads.get_clicked(sp::RESTORE_CAR) {
+            let notice = self.custom_cars.restore(&mut self.a, self.cargo.car).unwrap_or_else(|e| e);
+            self.show_toast(&notice);
+            return;
+        }
         self.fling_decay();
         let c = self.cargo.car;
         for i in 0..6 {
@@ -313,9 +334,9 @@ impl Game {
         g.h(&self.a.menu, S::MENU[25], 726.0, f5);
         g.h(&self.a.menu, S::MENU[26], 74.0, f5);
         g.set_tint(COLOR_GREEN);
-        self.bfb.f(g, &self.a.menu, &format!("{}", (self.render_coin + 0.5) as i64), 790.0, f5, 0.75);
+        self.bfb.f(g, &self.a.menu, &if self.unlimited_coins { "MAX".into() } else { format!("{}", (self.render_coin + 0.5) as i64) }, 790.0, f5, 0.75);
         g.set_tint(COLOR_RED);
-        self.bfb.f(g, &self.a.menu, &format!("{}", (self.render_gold + 0.5) as i64), 138.0, f5, 0.75);
+        self.bfb.f(g, &self.a.menu, &if self.unlimited_coins { "MAX".into() } else { format!("{}", (self.render_gold + 0.5) as i64) }, 138.0, f5, 0.75);
         g.clear_tint();
     }
 
@@ -327,9 +348,9 @@ impl Game {
         g.h(&self.a.ui, S::UI[3], 726.0, 16.0);
         g.h(&self.a.ui, S::UI[4], 74.0, 16.0);
         g.set_tint(COLOR_GREEN);
-        self.bf.f(g, &self.a.ui, &format!("{}", (self.render_coin + 0.5) as i64), 790.0, 16.0, 0.75);
+        self.bf.f(g, &self.a.ui, &if self.unlimited_coins { "MAX".into() } else { format!("{}", (self.render_coin + 0.5) as i64) }, 790.0, 16.0, 0.75);
         g.set_tint(COLOR_RED);
-        self.bf.f(g, &self.a.ui, &format!("{}", (self.render_gold + 0.5) as i64), 138.0, 16.0, 0.75);
+        self.bf.f(g, &self.a.ui, &if self.unlimited_coins { "MAX".into() } else { format!("{}", (self.render_gold + 0.5) as i64) }, 138.0, 16.0, 0.75);
         g.clear_tint();
     }
 
@@ -391,13 +412,22 @@ impl Game {
     pub fn render_tab_cargo(&mut self) {
         self.render_background(9);
         // 3D car, drawn over the background (camera viewport 800x500 from the bottom)
-        crate::scene::render_cur_car(&self.a, &self.g, self.cargo.car);
+        crate::scene::render_cur_car(&self.a, &self.g, self.cargo.car, self.preview_wheel_phase);
         let y = self.pads.p[sp::SCROLL].y;
         let f9 = self.tab_cargo.scroll + self.tab_cargo.drag;
         let c = self.cargo.car;
         let g = &mut self.g;
         let m = &self.a.menu;
         let info = car(c);
+        g.set_tint(Color::new(0.08,0.12,0.08,0.95));
+        g.e(&self.a.ui, S::WHITE_DOT, self.pads.p[sp::CAR_LIST].x, self.pads.p[sp::CAR_LIST].y, 95.0, 18.0);
+        g.clear_tint();
+        self.text.e(g, "Car list (L)", self.pads.p[sp::CAR_LIST].x, self.pads.p[sp::CAR_LIST].y, 0, 18.0, 95.0);
+        let p = &self.pads.p[sp::SHOWROOM];
+        g.set_tint(Color::new(0.08,0.12,0.16,0.96));
+        g.e(&self.a.ui, S::WHITE_DOT, p.x, p.y, 100.0, 18.0);
+        g.clear_tint();
+        self.text.e(g, "Showroom (V)", p.x, p.y, 0, 18.0, 100.0);
         for i in -4..10i32 {
             let f10 = Self::card_x(f9, i);
             if f10 < -100.0 - g.shift {
@@ -416,7 +446,11 @@ impl Game {
                 let status = car_status(&self.save, c);
                 self.bfb.d(g, m, &status, f10 - 18.0, (y + 72.0) - 14.0, 0.75);
                 g.set_tint(COLOR_RED);
-                self.bfb.d(g, m, info.name, f10, y, 1.0);
+                if let Some(name) = self.a.custom_car_name[c].as_deref() {
+                    self.text.e(g, name, f10, y, 0, 21.0, 92.0);
+                } else {
+                    self.bfb.d(g, m, info.name, f10, y, 1.0);
+                }
                 g.clear_tint();
             }
             if i > -1 && i < 6 {
@@ -446,6 +480,19 @@ impl Game {
                 }
                 self.text.e(g, ABILITY_NAMES[i as usize], f15 - 92.0, y - 62.0, 1, 18.0, 64.0);
             }
+        }
+        if cfg!(target_os = "windows") {
+            for (id, label) in [
+                (sp::IMPORT_CAR, if self.custom_cars.busy() { "Choosing files..." } else { "Import car (OBJ + PNG)" }),
+                (sp::RESTORE_CAR, "Restore original"),
+            ] {
+                let pad = &self.pads.p[id];
+                g.set_tint(if pad.on { Color::new(0.2, 0.45, 0.15, 0.95) } else { Color::new(0.08, 0.12, 0.08, 0.95) });
+                g.e(&self.a.ui, S::WHITE_DOT, pad.x, pad.y, 95.0, 18.0);
+                g.clear_tint();
+                self.text.e(g, label, pad.x, pad.y, 0, 16.0, 90.0);
+            }
+            self.text.e(g, if self.a.custom_car[c] { "Custom model / stock handling" } else { "Replace the selected car's 3D model" }, 400.0, g.sh * 0.45 - 30.0, 0, 14.0, 190.0);
         }
     }
 
