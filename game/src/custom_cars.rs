@@ -10,7 +10,8 @@ const MAX_FILE: usize = 8 * 1024 * 1024;
 /// The web pack ships known detailed cars separately from the stock bundle.
 #[cfg(target_arch="wasm32")]
 pub async fn load_bundled(a:&mut Assets) {
-    let manifest=crate::assets::present_while(macroquad::file::load_file("assets/cars/catalog.json")).await
+    // v2 adds mobilePath; do not reuse a pre-mobile catalog from the HTTP cache.
+    let manifest=crate::assets::present_while(macroquad::file::load_file("assets/cars/catalog.json?v=2")).await
         .expect("Detailed car catalog could not be loaded");
     let catalog:serde_json::Value=serde_json::from_slice(&manifest).expect("Invalid car catalog");
     let cars=catalog.as_array().expect("Car catalog must be a list");
@@ -18,7 +19,8 @@ pub async fn load_bundled(a:&mut Assets) {
     for (index,item) in cars.iter().enumerate() {
         let slot=item["slot"].as_u64().expect("Car slot") as usize;
         assert!(slot<PLAYER_CARS,"Invalid car slot");
-        let path=item["path"].as_str().expect("Car package path");
+        let key=if crate::render_profile::lightweight(){"mobilePath"}else{"path"};
+        let path=item[key].as_str().expect("Car package path");
         assert!(path.starts_with("assets/cars/")&&!path.contains(".."),"Invalid car package path");
         let name=item["name"].as_str().unwrap_or("Modern car");
         let label=format!("Loading modern cars {}/{} — {}",index+1,cars.len(),name);

@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dr. Driving">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Dr. Driving — Modern Garage</title>
 <meta name="description" content="Play Dr. Driving in your browser with seven detailed modern cars, a 3D showroom, unlimited coins and gold, and all cars unlocked.">
 <meta property="og:type" content="website">
@@ -23,22 +28,18 @@
 <meta name="twitter:image" content="__SITE_ORIGIN__/og.png">
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="launcher.css">
+<link rel="stylesheet" href="display.css">
 <style>
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden;
     overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent; }
   canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
-  #fs { position: fixed; top: 6px; right: 6px; z-index: 10; width: 34px; height: 34px; padding: 0;
-    border: 0; border-radius: 6px; background: rgba(0,0,0,.45); color: #fff; opacity: .4; cursor: pointer;
-    display: none; align-items: center; justify-content: center; touch-action: manipulation; }
-  #fs:hover, #fs:focus-visible { opacity: 1; }
-  #fs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   #failure { display:none;position:fixed;inset:0;z-index:40;place-items:center;background:#0d131bee;color:#fff;font:16px system-ui,sans-serif;text-align:center;padding:24px; }
   #failure button { border:0;border-radius:6px;padding:12px 24px;background:#b4e664;color:#132013;font-weight:700;cursor:pointer; }
 </style>
 </head>
 <body>
-<canvas id="glcanvas" tabindex="1"></canvas>
+<div id="game-viewport"><canvas id="glcanvas" tabindex="1" aria-label="Dr. Driving game"></canvas></div>
 <div id="welcome"><main class="launch-shell">
   <header class="launch-header">
     <div class="launch-brand"><svg viewBox="0 0 28 26" aria-hidden="true"><path d="M3 25V2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 2h6v6H5zm12 0h6v6h-6zM11 8h6v6h-6zM5 14h6v6H5zm12 0h6v6h-6z" fill="currentColor"/><path d="M5 2h18v18H5" fill="none" stroke="currentColor"/></svg>DR. DRIVING</div>
@@ -68,12 +69,28 @@
       <div class="control-strip" style="grid-column:1/-1">Pick a car, then tap the green arrows to choose a mission and start. Turn your phone sideways for more room.</div>
     </div>
   </section>
-  <footer class="launch-footer"><div><a href="https://github.com/kushagr1501/drdriving-pc" target="_blank" rel="noopener">GitHub ↗</a><a href="LICENSE.txt" target="_blank" rel="noopener">License</a></div><p>Progress saves in this browser.</p></footer>
+  <footer class="launch-footer"><div><button id="launch-display" class="launch-screen-button" type="button">Screen &amp; graphics</button><a href="https://github.com/kushagr1501/drdriving-pc" target="_blank" rel="noopener">GitHub ↗</a><a href="LICENSE.txt" target="_blank" rel="noopener">License</a></div><p>Progress saves in this browser.</p></footer>
 </main></div>
 <div id="failure" role="alert"><section><h2>The game couldn’t start</h2><p id="failure-message">Check your connection and try again.</p><button type="button" onclick="location.reload()">Retry</button></section></div>
-<button id="fs" type="button" title="Fullscreen" aria-label="Toggle fullscreen">
+<div id="screen-tools" aria-label="Screen controls">
+<button id="graphics" type="button" title="Screen &amp; graphics" aria-label="Screen and graphics settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="#12171c"/><circle cx="15" cy="17" r="3" fill="#12171c"/></svg></button>
+<button id="fs" type="button" title="Fullscreen" aria-label="Fullscreen">
   <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
 </button>
+</div>
+<div id="display-settings" role="dialog" aria-modal="true" aria-labelledby="display-title" hidden>
+  <section class="display-card">
+    <button id="display-close" class="display-close" type="button" aria-label="Close screen settings">×</button>
+    <h2 id="display-title">Screen &amp; graphics</h2>
+    <p id="screen-help"></p>
+    <ol id="screen-steps"><li id="install-step">In Safari, tap Share, then “Add to Home Screen”.</li><li>Keep “Open as Web App” enabled if shown, then tap Add.</li><li>Open Dr. Driving from the new Home Screen icon.</li></ol>
+    <label for="graphics-quality">Graphics</label>
+    <select id="graphics-quality" aria-describedby="quality-note"><option value="auto">Auto (recommended)</option><option value="performance">Performance</option><option value="high">High quality</option></select>
+    <p id="quality-note"></p>
+    <button id="quality-apply" type="button" hidden>Apply &amp; reload game</button>
+  </section>
+</div>
+<script src="display.js"></script>
 <script src="launcher.js"></script>
 <script>
 function drFailure(message) {
@@ -115,6 +132,8 @@ var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, s
     version: "0.2.0",
     register_plugin: function (importObject) {
       var env = importObject.env;
+      env.dr_mobile_rendering = function () { return drDisplay.lightweight ? 1 : 0; };
+      env.dr_game_active = function () { return drDisplay.active() ? 1 : 0; };
       env.dr_game_ready = function () { drLauncher.ready(); };
       env.dr_storage_set = function (ptr, len) {
         try {
@@ -262,32 +281,6 @@ var drBundle = { chunks: [], loaded: 0, total: Number("__ASSET_BYTES__") || 0, s
 })();
 load("drdriving.wasm");
 
-// ---- 3. fullscreen button (hidden where the browser can't do it, e.g. iPhone Safari) ---------
-(function () {
-  var btn = document.getElementById("fs");
-  var el = document.documentElement;
-  var req = el.requestFullscreen || el.webkitRequestFullscreen;
-  if (!req) return;
-  btn.style.display = "flex";
-  function isFs() { return document.fullscreenElement || document.webkitFullscreenElement; }
-  btn.addEventListener("click", function (e) {
-    e.preventDefault();
-    if (isFs()) {
-      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    } else {
-      var p = req.call(el);
-      var lock = function () {
-        try { screen.orientation.lock("landscape").catch(function () {}); } catch (err) {}
-        document.getElementById("glcanvas").focus();
-      };
-      if (p && p.then) p.then(lock, function () {}); else lock();
-    }
-  });
-  // don't let the click turn into game input / keep focus on the button (space/enter would re-toggle)
-  btn.addEventListener("mousedown", function (e) { e.preventDefault(); });
-  btn.addEventListener("touchstart", function (e) { e.stopPropagation(); }, { passive: true });
-  document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-})();
 </script>
 </body>
 </html>

@@ -135,6 +135,18 @@ selector, showroom and driving sounds. Progress saves locally in each browser. T
 OBJ/PNG file picker remains a desktop feature. Model and game credits are linked from the
 start screen. The sandbox does not connect to online matchmaking.
 
+On phones and tablets, **Auto** selects Performance: 1× screen resolution without MSAA,
+lighter car geometry and reflections, and smaller mirror targets. Desktop Auto keeps
+the full-detail renderer. Open **Screen & graphics** on the start screen or the sliders button
+in-game to choose Auto, Performance or High quality; applying a change saves it and reloads.
+Geometry for the city and stock cars is cached instead of rebuilt every frame.
+
+The screen button requests browser fullscreen where supported. Where it is unavailable,
+it shows Home Screen instructions. On iPhone, open the game in Safari, use **Share → Add to
+Home Screen**, enable **Open as Web App** if shown, and launch the new icon. The manifest
+opens it as a standalone app; notch/home-indicator insets and changing browser-bar heights
+are reserved around the game canvas. Turn the phone sideways for the intended driving layout.
+
 With Rustup and Node.js installed:
 
 ```powershell
@@ -148,6 +160,11 @@ Use `node web/build.mjs --no-build` to package an existing release WASM. Set
 `DRDRIVING_SITE_URL` to the deployed HTTPS base URL (including the repository path for
 GitHub Pages) to populate social-preview URLs.
 Car packages in `web/car-pack/` are separate from `assets.bin` so each file stays under 25 MiB.
+Mobile packages are generated with `node tools/car-quality/export-mobile-cars.mjs` after
+installing the dependencies in `tools/car-quality/`. They retain source materials and wheel
+pivots, cap textures at 1024px, and simplify dense meshes within an appearance-error budget.
+`node web/validate.mjs` and `node web/validate-display.mjs` check package integrity and browser
+bridge/capability fixtures. These checks do not measure FPS on physical phones.
 
 The Pages workflow builds and validates the browser bundle on every push to `main`.
 In repository **Settings → Pages**, the publishing source is **GitHub Actions**.

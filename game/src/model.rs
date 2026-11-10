@@ -3,11 +3,13 @@
 
 use macroquad::models::{draw_mesh, Mesh, Vertex};
 use macroquad::prelude::*;
+use std::cell::RefCell;
 
 pub struct Model {
     pos: Vec<[f32; 3]>,
     uv: Vec<[f32; 2]>,
     wheels: Vec<Wheel>,
+    cache: RefCell<Option<CachedGeometry>>,
 }
 
 struct Wheel {
@@ -15,6 +17,13 @@ struct Wheel {
     uv: Vec<[f32; 2]>,
     pivot: Vec3,
     front: bool,
+    cache: RefCell<Option<CachedGeometry>>,
+}
+
+struct CachedGeometry {
+    chunks: Vec<Mesh>,
+    color: [u8; 4],
+    matrix: Option<Mat4>,
 }
 
 fn wheel_transform(pivot: Vec3, spin: f32, steering: f32) -> Mat4 {
@@ -95,7 +104,7 @@ impl Model {
             p[1] = (p[1] - lo[1]) * scale;
             p[2] = (p[2] - (lo[2] + hi[2]) * 0.5) * scale;
         }
-        let mut model = Model { pos, uv, wheels: Vec::new() };
+        let mut model = Model { pos, uv, wheels: Vec::new(), cache: RefCell::new(None) };
         model.partition_wheels(&face_wheels)?;
         Ok(model)
     }
@@ -121,7 +130,7 @@ impl Model {
             let mut lo = Vec3::splat(f32::MAX);
             let mut hi = Vec3::splat(f32::MIN);
             for p in &pos { let p = Vec3::from_array(*p); lo = lo.min(p); hi = hi.max(p); }
-            wheels.push(Wheel { pos, uv, pivot: (lo + hi) * 0.5, front: i < 2 });
+            wheels.push(Wheel { pos, uv, pivot: (lo + hi) * 0.5, front: i < 2, cache: RefCell::new(None) });
         }
         self.pos = body_pos;
         self.uv = body_uv;
@@ -163,7 +172,7 @@ impl Model {
                 _ => {}
             }
         }
-        Model { pos, uv, wheels: Vec::new() }
+        Model { pos, uv, wheels: Vec::new(), cache: RefCell::new(None) }
     }
 
     /// UV bounding box (u0, v0, u1, v1, in 0..1 image space, top-down) of the flat shadow quad baked
@@ -198,27 +207,45 @@ impl Model {
 
     /// Imported wheel objects rotate around their own axle; front wheels also steer.
     pub fn draw_driving(&self, tex: &Texture2D, m: &Mat4, tint: Color, spin: f32, steering: f32) {
-        Self::draw_data(&self.pos, &self.uv, tex, m, tint);
+        Self::draw_data(&self.pos, &self.uv, &self.cache, tex, m, tint);
         for wheel in &self.wheels {
             let wm = *m * wheel_transform(wheel.pivot, spin, if wheel.front { steering } else { 0.0 });
-            Self::draw_data(&wheel.pos, &wheel.uv, tex, &wm, tint);
+            Self::draw_data(&wheel.pos, &wheel.uv, &wheel.cache, tex, &wm, tint);
         }
     }
 
-    fn draw_data(pos: &[[f32; 3]], uv: &[[f32; 2]], tex: &Texture2D, m: &Mat4, tint: Color) {
+    fn draw_data(pos: &[[f32; 3]], uv: &[[f32; 2]], cache: &RefCell<Option<CachedGeometry>>, tex: &Texture2D, m: &Mat4, tint: Color) {
         const CHUNK: usize = 4998; // macroquad's batch holds 5000 indices
-        let mut start = 0;
-        while start < pos.len() {
-            let end = (start + CHUNK).min(pos.len());
-            let mut vertices = Vec::with_capacity(end - start);
-            for i in start..end {
-                let p = m.transform_point3(Vec3::from_array(pos[i]));
-                vertices.push(Vertex::new2(p, vec2(uv[i][0], uv[i][1]), tint));
+        let color = Vertex::new2(Vec3::ZERO, Vec2::ZERO, tint).color;
+        let mut cached = cache.borrow_mut();
+        let geometry = cached.get_or_insert_with(|| {
+            let mut chunks = Vec::new();
+            for start in (0..pos.len()).step_by(CHUNK) {
+                let end = (start + CHUNK).min(pos.len());
+                let vertices: Vec<_> = (start..end).map(|i| Vertex::new2(Vec3::from_array(pos[i]), Vec2::from_array(uv[i]), tint)).collect();
+                let indices = (0..vertices.len() as u16).collect();
+                chunks.push(Mesh { vertices, indices, texture: None });
             }
-            let indices: Vec<u16> = (0..vertices.len() as u16).collect();
-            draw_mesh(&Mesh { vertices, indices, texture: Some(tex.clone()) });
-            start = end;
+            CachedGeometry { chunks, color, matrix: None }
+        });
+        // Keep world-space vertices so Macroquad can batch different city
+        // instances together. A separate GPU Model matrix for each traffic
+        // light/road would break those batches into many small draw calls.
+        // Reuse the buffers/indices and skip transforms for unchanged instances.
+        let recolor = geometry.color != color;
+        let transform = geometry.matrix != Some(*m);
+        for (i, chunk) in geometry.chunks.iter_mut().enumerate() {
+            if transform {
+                for (j, vertex) in chunk.vertices.iter_mut().enumerate() {
+                    vertex.position = m.transform_point3(Vec3::from_array(pos[i * CHUNK + j]));
+                }
+            }
+            if recolor { for vertex in &mut chunk.vertices { vertex.color = color; } }
+            chunk.texture = Some(tex.clone());
+            draw_mesh(chunk);
         }
+        geometry.color = color;
+        geometry.matrix = Some(*m);
     }
 }
 

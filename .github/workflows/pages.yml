@@ -45,7 +45,9 @@ jobs:
           DRDRIVING_SITE_URL: ${{ steps.pages.outputs.base_url }}
 
       - name: Validate browser bundle
-        run: node web/validate.mjs
+        run: |
+          node web/validate.mjs
+          node web/validate-display.mjs
 
       - uses: actions/upload-pages-artifact@v3
         with:

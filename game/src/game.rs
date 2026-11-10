@@ -287,7 +287,11 @@ impl Game {
             snap_gold: 0,
             success_cam: Vec3::ZERO,
             drifts: DriftMarks::default(),
-            targets: Targets { back: rt(500, 200), left: rt(300, 200), right: rt(300, 200) },
+            targets: if crate::render_profile::lightweight() {
+                Targets { back: rt(200, 80), left: rt(120, 80), right: rt(120, 80) }
+            } else {
+                Targets { back: rt(500, 200), left: rt(300, 200), right: rt(300, 200) }
+            },
             cur_app: 1,
             help: false,
             kb_accel: false,

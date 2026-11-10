@@ -64,7 +64,7 @@ if(customDomain){
 outputs.set('drdriving.wasm', await fs.readFile(wasm));
 outputs.set('mq_js_bundle.js', await fs.readFile(glue));
 for (const name of ['og.png', 'icon.png']) outputs.set(name, await fs.readFile(path.join(root, 'web', name)));
-for (const name of ['launcher.css','launcher.js','porsche.webp']) outputs.set(name,await fs.readFile(path.join(root,'web',name)));
+for (const name of ['launcher.css','launcher.js','display.css','display.js','manifest.webmanifest','porsche.webp']) outputs.set(name,await fs.readFile(path.join(root,'web',name)));
 outputs.set('CREDITS.md', await fs.readFile(path.join(root, 'tools', 'car-quality', 'CREDITS.md')));
 outputs.set('LICENSE.txt', await fs.readFile(path.join(root, 'LICENSE')));
 
@@ -101,8 +101,12 @@ for (const slot of slots) {
   const header = JSON.parse(data.subarray(12, 12 + headerLength).toString('utf8'));
   if (header.version !== 1 || typeof header.name !== 'string') throw new Error(`Unsupported detailed car: ${name}`);
   const target = `assets/cars/${name}`;
+  const mobileTarget = `assets/cars/mobile/${name}`;
+  const mobile = await fs.readFile(path.join(root,'web','car-pack','mobile',name));
+  if (mobile.subarray(0,8).toString('ascii') !== 'DRHQ0001') throw new Error(`Invalid mobile car: ${name}`);
   outputs.set(target, data);
-  catalog.push({ slot, name: header.name, path: target });
+  outputs.set(mobileTarget, mobile);
+  catalog.push({ slot, name: header.name, path: target, mobilePath: mobileTarget });
 }
 outputs.set('assets/cars/catalog.json', Buffer.from(`${JSON.stringify(catalog, null, 2)}\n`));
 const html = await fs.readFile(path.join(root, 'web', 'index.html'), 'utf8');
@@ -111,7 +115,7 @@ const origin=(customDomain?'https://'+customDomain:(process.env.DRDRIVING_SITE_U
 let page=html.replaceAll('__ASSET_BYTES__',String(bundle.length)).replaceAll('__SITE_ORIGIN__',origin);
 // Keep the readiness bridge, styles and compiled game on the same release when
 // a player refreshes a previously cached GitHub Pages tab.
-for(const name of ['launcher.css','launcher.js','porsche.webp','mq_js_bundle.js','drdriving.wasm','assets.bin']){
+for(const name of ['launcher.css','launcher.js','display.css','display.js','porsche.webp','mq_js_bundle.js','drdriving.wasm','assets.bin']){
   const revision=createHash('sha256').update(outputs.get(name)).digest('hex').slice(0,12);
   page=page.replaceAll('"'+name+'"','"'+name+'?v='+revision+'"');
 }

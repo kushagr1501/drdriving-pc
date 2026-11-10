@@ -14,7 +14,7 @@ http.createServer((req,res)=>{
   if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}
   fs.stat(file,(err,stat)=>{
     if(err||!stat.isFile()){res.writeHead(404).end('Not found');return;}
-    res.writeHead(200,{'Content-Type':mime[path.extname(file)]??'application/octet-stream','Content-Length':stat.size,'Cache-Control':'no-store'});
+    res.writeHead(200,{'Content-Type':(path.extname(file)==='.webmanifest'?'application/manifest+json':mime[path.extname(file)])??'application/octet-stream','Content-Length':stat.size,'Cache-Control':'no-store'});
     if(req.method==='HEAD'){res.end();return;}
     fs.createReadStream(file).pipe(res);
   });

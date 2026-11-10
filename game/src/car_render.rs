@@ -50,12 +50,24 @@ uniform vec4 Extra;
 uniform vec3 Emission;
 uniform float Exposure;
 const float PI = 3.14159265359;
-vec3 linearColor(vec3 c) { return pow(max(c,vec3(0.0)),vec3(2.2)); }
+vec3 linearColor(vec3 c) {
+#ifdef MOBILE
+    return c*c;
+#else
+    return pow(max(c,vec3(0.0)),vec3(2.2));
+#endif
+}
 vec3 environment(vec3 direction, float roughness) {
+#ifdef MOBILE
+    // Approximate the soft studio reflection without per-fragment atan/acos.
+    vec2 e=vec2(0.5+direction.x*0.25,0.5-direction.y*0.45);
+    return linearColor(texture2D(EnvironmentBlur,e).rgb);
+#else
     vec2 e = vec2(atan(direction.z,direction.x)/(2.0*PI)+0.5, acos(clamp(direction.y,-1.0,1.0))/PI);
     vec3 sharp = linearColor(texture2D(Environment,e).rgb);
     vec3 blurred = linearColor(texture2D(EnvironmentBlur,e).rgb);
     return mix(sharp,blurred,smoothstep(0.02,0.22,roughness));
+#endif
 }
 vec3 fresnel(float c, vec3 f0) { return f0+(1.0-f0)*pow(1.0-clamp(c,0.0,1.0),5.0); }
 vec3 directLight(vec3 N,vec3 V,vec3 L,vec3 color,vec3 base,float metal,float rough,vec3 f0) {
@@ -106,13 +118,24 @@ void main() {
     vec3 reflected=environment(R,rough);
     vec3 specular=reflected*(F*(1.0-rough*0.85)+vec3(0.005))*1.15;
     vec3 radiance=(diffuse+specular)*ao;
+#ifdef MOBILE
+    vec3 L=normalize(vec3(-0.5,0.9,0.6));
+    float highlight=pow(max(dot(N,normalize(V+L)),0.0),mix(80.0,8.0,rough));
+    radiance+=base*(1.0-metal)*max(dot(N,L),0.0)*0.65+f0*highlight*0.75;
+#else
     radiance+=directLight(N,V,normalize(vec3(-0.5,0.9,0.6)),vec3(2.3,2.13,1.95),base,metal,rough,f0);
     radiance+=directLight(N,V,normalize(vec3(0.8,0.4,-0.5)),vec3(0.58,0.7,0.95),base,metal,rough,f0);
+#endif
     float coat=Surface.z*(1.0-step(0.5,Extra.w));
     vec3 coatF=min(fresnel(nv,vec3(0.045)),vec3(0.22));
+#ifdef MOBILE
+    radiance=radiance*(1.0-coat*coatF)+reflected*coatF*coat*1.15;
+    if(Surface.w>0.5)radiance=mix(base*0.22+hemi*0.025,reflected*0.65,0.24+pow(1.0-nv,3.0)*0.56);
+#else
     radiance=radiance*(1.0-coat*coatF)+environment(R,0.20)*coatF*coat*1.15;
     // Glass keeps readable silhouettes and reflects the studio/sky rather than a flat dark fill.
     if(Surface.w>0.5)radiance=mix(base*0.22+hemi*0.025,environment(R,0.24)*0.65,0.24+pow(1.0-nv,3.0)*0.56);
+#endif
     radiance+=Emission*mix(vec3(1.0),linearColor(texture2D(EmissionMap,uv).rgb),MapFlags.w);
     radiance*=Exposure;
     vec3 mapped=(radiance*(2.51*radiance+0.03))/(radiance*(2.43*radiance+0.59)+0.14);
@@ -131,10 +154,13 @@ pub struct CarRenderer {
 }
 
 fn shader(glass: bool) -> Material {
+    let fragment = if crate::render_profile::lightweight() {
+        FRAGMENT.replacen("#version 100", "#version 100\n#define MOBILE", 1)
+    } else { FRAGMENT.to_string() };
     load_material(
         ShaderSource::Glsl {
             vertex: VERTEX,
-            fragment: FRAGMENT,
+            fragment: &fragment,
         },
         MaterialParams {
             pipeline_params: PipelineParams {

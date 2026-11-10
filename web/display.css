@@ -1,0 +1,25 @@
+:root{--app-height:100vh;--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}
+@supports(height:100dvh){:root{--app-height:100dvh}}
+#game-viewport{position:fixed;top:var(--safe-top);left:var(--safe-left);right:var(--safe-right);height:calc(var(--app-height) - var(--safe-top) - var(--safe-bottom))}
+#game-viewport canvas{width:100%;height:100%}
+#screen-tools{position:fixed;top:calc(var(--safe-top) + 6px);right:calc(var(--safe-right) + 6px);z-index:10;display:flex;gap:5px}
+#screen-tools button{display:grid;place-items:center;width:44px;height:40px;padding:0;border:1px solid #ffffff35;border-radius:6px;background:#12171cdb;color:#fff;cursor:pointer;touch-action:manipulation}
+#screen-tools button:hover,#screen-tools button:focus-visible{background:#343d46}
+#screen-tools svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#display-settings[hidden]{display:none}
+#display-settings{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:max(16px,var(--safe-top)) max(16px,var(--safe-right)) max(16px,var(--safe-bottom)) max(16px,var(--safe-left));box-sizing:border-box;background:#080b10b8;font:15px/1.5 Arial,Helvetica,sans-serif;color:#17191b}
+.display-card{position:relative;background:#ecebe6;border-radius:12px;padding:24px;width:min(420px,100%);max-height:calc(var(--app-height) - 80px);overflow:auto;box-sizing:border-box;box-shadow:0 18px 80px #0006}
+.display-card h2{font-size:22px;margin:0 36px 18px 0;letter-spacing:-.5px}
+.display-card p{margin:10px 0 14px;color:#41484e}
+.display-card ol{padding-left:22px;margin:12px 0 20px}
+.display-card li{margin:5px 0}
+.display-card label{display:block;margin-bottom:6px;font-weight:bold}
+.display-card select{box-sizing:border-box;width:100%;padding:11px;border:1px solid #9fa5a5;border-radius:5px;color:#17191b;background:#fff;font:inherit}
+.display-card button{min-height:44px;border:0;border-radius:5px;padding:10px 15px;background:#17191b;color:#fff;font:bold 14px Arial,sans-serif;cursor:pointer}
+.display-card .display-close{position:absolute;top:13px;right:13px;background:transparent;color:#17191b;font-size:24px;line-height:24px;width:44px;padding:0}
+#quality-note{font-size:13px;margin-bottom:12px}
+#quality-apply{width:100%;background:#d94822}
+.launch-screen-button{border:0;padding:0;background:transparent;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:32px}
+.launch-footer>div{align-items:center;flex-wrap:wrap}
+#welcome{height:var(--app-height);padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);box-sizing:border-box}
+@media(orientation:portrait) and (pointer:coarse){#screen-tools::before{content:'Turn sideways to drive';align-self:center;font:11px Arial,sans-serif;color:#fff;background:#12171cdb;padding:7px 9px;border-radius:4px}}

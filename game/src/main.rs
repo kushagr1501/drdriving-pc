@@ -14,6 +14,7 @@ mod model;
 mod pad;
 mod persist;
 mod presence;
+mod render_profile;
 mod rpc;
 mod scene;
 mod sprites;
@@ -25,12 +26,13 @@ use macroquad::prelude::*;
 
 fn conf() -> Conf {
     audio::install_panic_hook();
+    let lightweight = render_profile::lightweight();
     Conf {
         window_title: "Dr. Driving".to_string(),
         window_width: 1280,
         window_height: 720,
-        high_dpi: true,
-        sample_count: 4,
+        high_dpi: !lightweight,
+        sample_count: if lightweight { 1 } else { 4 },
         ..Default::default()
     }
 }
@@ -94,6 +96,13 @@ pub async fn game_loop(game: &mut Game) {
     let perf = std::env::var_os("DRDRIVING_PERF").is_some();
     let (mut t_up, mut t_dr, mut frames) = (0.0f64, 0.0f64, 0u32);
     loop {
+        // The start page covers the entire game. Avoid rendering it underneath,
+        // and discard elapsed time after a background tab is resumed.
+        if !render_profile::active() {
+            acc = 0.0;
+            next_frame().await;
+            continue;
+        }
         acc += get_frame_time().min(0.1);
         let t0 = macroquad::miniquad::date::now();
         let mut n = 0;
