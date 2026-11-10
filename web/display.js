@@ -31,7 +31,6 @@ var drDisplay=(function(){
   close.addEventListener('click',dismiss);
   panel.addEventListener('click',function(e){if(e.target===panel)dismiss();});
   document.getElementById('graphics').addEventListener('click',open);
-  document.getElementById('launch-display').addEventListener('click',open);
   document.addEventListener('keydown',function(e){
     if(panel.hidden)return;
     // Keep settings keystrokes out of the driving controls.

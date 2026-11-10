@@ -132,13 +132,13 @@ GitHub Pages custom domain: [Play Dr. Driving — Modern Garage](https://dr-driv
 
 The WebAssembly/WebGL build bundles all seven detailed cars, unlimited coins/gold, the car
 selector, showroom and driving sounds. Progress saves locally in each browser. The Windows
-OBJ/PNG file picker remains a desktop feature. Model and game credits are linked from the
-start screen. The sandbox does not connect to online matchmaking.
+OBJ/PNG file picker remains a desktop feature. Model and game credits are included in
+`CREDITS.md` and `LICENSE.txt` in the browser bundle. The sandbox does not connect to online matchmaking.
 
 On phones and tablets, **Auto** selects Performance: 1× screen resolution without MSAA,
 lighter car geometry and reflections, and smaller mirror targets. Desktop Auto keeps
-the full-detail renderer. Open **Screen & graphics** on the start screen or the sliders button
-in-game to choose Auto, Performance or High quality; applying a change saves it and reloads.
+the full-detail renderer. Open the sliders button in-game to choose Auto, Performance or
+High quality; applying a change saves it and reloads.
 Geometry for the city and stock cars is cached instead of rebuilt every frame.
 
 The screen button requests browser fullscreen where supported. Where it is unavailable,

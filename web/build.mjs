@@ -64,7 +64,7 @@ if(customDomain){
 outputs.set('drdriving.wasm', await fs.readFile(wasm));
 outputs.set('mq_js_bundle.js', await fs.readFile(glue));
 for (const name of ['og.png', 'icon.png']) outputs.set(name, await fs.readFile(path.join(root, 'web', name)));
-for (const name of ['launcher.css','launcher.js','display.css','display.js','manifest.webmanifest','porsche.webp']) outputs.set(name,await fs.readFile(path.join(root,'web',name)));
+for (const name of ['launcher.css','launcher.js','display.css','display.js','manifest.webmanifest']) outputs.set(name,await fs.readFile(path.join(root,'web',name)));
 outputs.set('CREDITS.md', await fs.readFile(path.join(root, 'tools', 'car-quality', 'CREDITS.md')));
 outputs.set('LICENSE.txt', await fs.readFile(path.join(root, 'LICENSE')));
 
@@ -115,7 +115,7 @@ const origin=(customDomain?'https://'+customDomain:(process.env.DRDRIVING_SITE_U
 let page=html.replaceAll('__ASSET_BYTES__',String(bundle.length)).replaceAll('__SITE_ORIGIN__',origin);
 // Keep the readiness bridge, styles and compiled game on the same release when
 // a player refreshes a previously cached GitHub Pages tab.
-for(const name of ['launcher.css','launcher.js','display.css','display.js','porsche.webp','mq_js_bundle.js','drdriving.wasm','assets.bin']){
+for(const name of ['launcher.css','launcher.js','display.css','display.js','mq_js_bundle.js','drdriving.wasm','assets.bin']){
   const revision=createHash('sha256').update(outputs.get(name)).digest('hex').slice(0,12);
   page=page.replaceAll('"'+name+'"','"'+name+'?v='+revision+'"');
 }

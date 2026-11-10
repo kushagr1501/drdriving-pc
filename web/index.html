@@ -41,10 +41,6 @@
 <body>
 <div id="game-viewport"><canvas id="glcanvas" tabindex="1" aria-label="Dr. Driving game"></canvas></div>
 <div id="welcome"><main class="launch-shell">
-  <header class="launch-header">
-    <div class="launch-brand"><svg viewBox="0 0 28 26" aria-hidden="true"><path d="M3 25V2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 2h6v6H5zm12 0h6v6h-6zM11 8h6v6h-6zM5 14h6v6H5zm12 0h6v6h-6z" fill="currentColor"/><path d="M5 2h18v18H5" fill="none" stroke="currentColor"/></svg>DR. DRIVING</div>
-    <nav aria-label="Start screen"><a href="#control-guide">Controls</a><a href="CREDITS.md" target="_blank" rel="noopener">Credits ↗</a></nav>
-  </header>
   <section class="launch-hero" aria-label="Start game">
     <div class="launch-copy">
       <h1><span>DR.</span><span>DRIVING</span></h1>
@@ -52,7 +48,6 @@
       <button id="play" type="button" aria-describedby="load-note" disabled><span id="play-label">LOADING GAME</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12h17m-7-7 7 7-7 7"/></svg></button>
       <div class="launch-loading"><progress id="download-progress" value="0" max="100" aria-label="Game download"></progress><div class="load-line"><span id="load-note" aria-live="polite">Loading game files</span><span id="ready-state">Please wait</span></div></div>
     </div>
-    <figure class="launch-art"><img src="porsche.webp" width="800" height="400" alt="Black Porsche 911 C4S in the game’s garage" fetchpriority="high"><figcaption><span>PORSCHE 911 C4S</span><span>Choose your car in the garage</span></figcaption></figure>
   </section>
   <section id="control-guide" class="control-guide" aria-labelledby="controls-title">
     <div class="control-heading"><h2 id="controls-title">HOW TO PLAY</h2><div class="control-tabs" role="tablist" aria-label="Control type"><button id="keyboard-tab" role="tab" aria-selected="true" aria-controls="keyboard-panel" type="button">Keyboard</button><button id="touch-tab" role="tab" aria-selected="false" aria-controls="touch-panel" type="button" tabindex="-1">Touch</button></div></div>
@@ -69,7 +64,6 @@
       <div class="control-strip" style="grid-column:1/-1">Pick a car, then tap the green arrows to choose a mission and start. Turn your phone sideways for more room.</div>
     </div>
   </section>
-  <footer class="launch-footer"><div><button id="launch-display" class="launch-screen-button" type="button">Screen &amp; graphics</button><a href="https://github.com/kushagr1501/drdriving-pc" target="_blank" rel="noopener">GitHub ↗</a><a href="LICENSE.txt" target="_blank" rel="noopener">License</a></div><p>Progress saves in this browser.</p></footer>
 </main></div>
 <div id="failure" role="alert"><section><h2>The game couldn’t start</h2><p id="failure-message">Check your connection and try again.</p><button type="button" onclick="location.reload()">Retry</button></section></div>
 <div id="screen-tools" aria-label="Screen controls">
