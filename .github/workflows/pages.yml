@@ -48,6 +48,7 @@ jobs:
         run: |
           node web/validate.mjs
           node web/validate-display.mjs
+          node web/validate-analytics.mjs
 
       - uses: actions/upload-pages-artifact@v3
         with:

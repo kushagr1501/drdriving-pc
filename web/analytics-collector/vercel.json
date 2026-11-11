@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "",
+  "outputDirectory": ".",
+  "rewrites": [
+    {"source":"/collect/script.js","destination":"https://dr-driving-analytics.vercel.app/_vercel/insights/script.js"},
+    {"source":"/collect/view","destination":"https://dr-driving-analytics.vercel.app/_vercel/insights/view"}
+  ],
+  "headers": [{
+    "source": "/collect/:path*",
+    "headers": [
+      {"key":"Access-Control-Allow-Origin","value":"https://dr-driving.meowsy.space"},
+      {"key":"Access-Control-Allow-Methods","value":"GET, POST, OPTIONS"},
+      {"key":"Access-Control-Allow-Headers","value":"Content-Type"}
+    ]
+  }]
+}

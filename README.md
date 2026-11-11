@@ -170,3 +170,23 @@ The Pages workflow builds and validates the browser bundle on every push to `mai
 In repository **Settings → Pages**, the publishing source is **GitHub Actions**.
 The custom domain is recorded in `web/CNAME` and copied into the published bundle.
 DNS: `dr-driving` is a CNAME to `kushagr1501.github.io`.
+
+### Visitor analytics
+
+[Vercel Analytics dashboard](https://vercel.com/kushagr1501s-projects/dr-driving-analytics/analytics)
+tracks visits, referrers, countries, devices and browsers for `dr-driving.meowsy.space`.
+The game stays on GitHub Pages. A small Vercel project in `web/analytics-collector/` supplies
+the official analytics script and a collection endpoint with CORS for the game domain.
+Deploy that folder separately after changing its configuration; normal game updates use Pages.
+
+`web/analytics.js` loads asynchronously on the production domain, skips local/preview sites
+and browser privacy opt-outs, and removes query values/fragments from recorded page URLs.
+Analytics failures do not block the game. No player names, save data, car uploads, game inputs,
+or custom user identifiers are sent. The integration does not call Vercel's identify/group or
+cookie APIs. The current Hobby plan uses page views; custom events such as Play clicks require
+Pro and are not enabled here. Older traffic cannot be recovered.
+
+Run `node web/validate-analytics.mjs` for loader/queue fixtures. Verify the live `/collect/view`
+endpoint and dashboard separately; fixture checks do not prove events reached Vercel.
+The setup smoke test records one page view at `/__analytics_verification`; this is a test,
+not a player visit. The actual home page remains `/` in reports.
